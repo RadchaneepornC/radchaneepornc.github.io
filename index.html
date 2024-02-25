@@ -164,7 +164,59 @@
             </tr>
           </tbody></table>
           <table style="width:100%;border:0px;border-spacing:0px;border-collapse:separate;margin-right:auto;margin-left:auto;"><tbody>
-	
+
+	<tr onmouseout="hypernerf_stop()" onmouseover="hypernerf_start()">
+            <td style="padding:20px;width:25%;vertical-align:middle">
+              <div class="one">
+                <div class="two" id='hypernerf_image'><video  width=100% height=100% muted autoplay loop>
+                <source src="images/hypernerf_after.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+                </video></div>
+                <img
+                  src='images/SimpleHarmFilter.png'
+                  width="160" xmlns="http://www.w3.org/2000/svg"
+                > 
+              </div>
+              <script type="text/javascript">
+                function hypernerf_start() {
+                  document.getElementById('hypernerf_image').style.opacity = "1";
+                }
+
+                function hypernerf_stop() {
+                  document.getelementbyid('hypernerf_image').style.opacity = "0";
+                }
+                hypernerf_stop()
+              </script>
+            </td>
+            <td style="padding:20px;width:75%;vertical-align:middle">
+        
+                <papertitle>
+			Applied Artificial Neural Network for Hydrogen Sulfide Solubility in Natural Gas Purification
+		</papertitle>
+              
+              <br>
+                Prathana Nimmanterdwong,
+		<strong>Radchaneeporn Changpun</strong>,
+		Patipon Janthboon,
+		el al.
+		
+	      <br>
+              <a href="https://pubs.acs.org/doi/full/10.1021/acsomega.1c05169">Link to Paper</a>
+		<br>
+              <p>
+		This publication is about applying a function in the MATLAB program and knowledge of Data Science to develop an artificial neural network model for predicting hydrogen sulfide solubility in natural gas purification processes. The model obtained a coefficient of determination (R2) of 0.9817 and a mean square error (MSE) of 0.0014.
+              </p>
+            </td>
+          </tr>
+		
+
+
+
+
+
+
+
+		  
 	  </tbody></table>
           <table style="width:100%;border:0px;border-spacing:0px;border-collapse:separate;margin-right:auto;margin-left:auto;"><tbody>
               <tr>

@@ -68,6 +68,49 @@
 
 
 		<tr onmouseout="hypernerf_stop()" onmouseover="hypernerf_start()">
+	    <td style="padding:20px;width:25%;vertical-align:middle">
+              <div class="one">
+                <div class="two" id='hypernerf_image'><video  width=100% height=100% muted autoplay loop>
+                <source src="images/hypernerf_after.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+                </video></div>
+                <img
+                  src='images/BertViz.gif'
+                  width="160" xmlns="http://www.w3.org/2000/svg"
+                > 
+              </div>
+              <script type="text/javascript">
+                function hypernerf_start() {
+                  document.getElementById('hypernerf_image').style.opacity = "1";
+                }
+
+                function hypernerf_stop() {
+                  document.getelementbyid('hypernerf_image').style.opacity = "0";
+		 }
+                hypernerf_stop()
+              </script>
+            </td>
+            <td style="padding:20px;width:75%;vertical-align:middle">
+              <a>
+                <papertitle>
+			Multi-Label text classification 
+              </a>
+	      <br>
+              <a href="https://github.com/RadchaneepornC/ClassificationScopusPaper/tree/main">Project Github</a>
+		<br>
+              <p>
+	       I classify Scopus publications using encoder representation from transformers language model (RoBERTa), achieving a significant improvement of 40.3% in the Macro F1 Score (0.6687) compared to the baseline model (0.1894), demonstrating the effectiveness of transfer learning in enhancing text classification performance
+		</papertitle>
+              <li>Demonstrated proficiency in applying transfer learning concepts by fine-tuning a pretrained RoBERTa model on a domain-specific dataset (Scopus publications) for multi-label text classification</li>
+	      <li>Implemented data preprocessing techniques, including tokenization, encoding, and data splitting, to prepare the dataset for training and evaluation </li>
+	      <li>Designed and developed a custom RoBERTa-based neural network architecture for multi-label classification, incorporating dropout regularization and a linear classification layer</li>
+	      <li>Utilized ```PyTorch``` and Hugging Face libraries to efficiently train and evaluate the model, leveraging GPU acceleration for improved performance </li>
+	       I classify Scopus publications using encoder representation from transformers language model (RoBERTa), achieving a significant improvement of 40.3% in the Macro F1 Score (0.6687) compared to the baseline model (0.1894), demonstrating the effectiveness of transfer learning in enhancing text classification performance
+	      
+
+	      </p>
+	      
+            </td>
             <td style="padding:20px;width:25%;vertical-align:middle">
               <div class="one">
                 <div class="two" id='hypernerf_image'><video  width=100% height=100% muted autoplay loop>

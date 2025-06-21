@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Science Architecture</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        .content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .content ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .content ul li {
+            margin: 10px 0;
+        }
+        .content ul li a {
+            color: #3273dc;
+            text-decoration: none;
+        }
+        .content ul li a:hover {
+            text-decoration: underline;
+        }
+        .lecture-notes {
+            margin-top: 20px;
+        }
+        .lecture-section {
+            margin-bottom: 30px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #777;
+        }
+        .home-link {
+            margin-bottom: 20px;
+        }
+        .home-link a {
+            color: #3273dc;
+            text-decoration: none;
+        }
+        .home-link a:hover {
+            text-decoration: underline;
+        }
+        .image-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .image-container img {
+            max-width: 100%;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        code {
+            background-color: #f5f5f5;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="home-link">
+            <a href="../../index.html">← Back to Home</a>
+        </div>
+        
+        <h1 class="title">Data Science Architecture</h1>
+        
+        <div class="content">
+            <h2 class="subtitle">Course Overview</h2>
+            <p>
+                This course explores the architectural foundations and systems design principles for building robust, scalable, 
+                and maintainable data science applications and infrastructure. We'll cover both theoretical concepts and 
+                practical implementation strategies used in modern data-driven organizations.
+            </p>
+        </div>
+        
+        <div class="content">
+            <h2 class="subtitle">Resources</h2>
+            <ul>
+                <li><a href="#" target="_blank">Course Syllabus</a></li>
+                <li><a href="#" target="_blank">Reference Architecture Diagrams</a></li>
+                <li><a href="#" target="_blank">Recommended Reading List</a></li>
+                <li><a href="#" target="_blank">GitHub Repository</a></li>
+            </ul>
+        </div>
+        
+        <div class="content lecture-notes">
+            <h2 class="subtitle">Lecture Notes</h2>
+            
+            <div class="lecture-section">
+                <h3>Module 1: Foundations of Data Science Architecture</h3>
+                <ul>
+                    <li><a href="#">Slides</a> | <a href="#">Lecture Notes</a></li>
+                    <li>Topics:
+                        <ul>
+                            <li>Defining Data Science Architecture</li>
+                            <li>Key Components and Stakeholders</li>
+                            <li>Architectural Patterns and Anti-patterns</li>
+                            <li>Technology Stack Considerations</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="lecture-section">
+                <h3>Module 2: Data Collection and Storage Systems</h3>
+                <ul>
+                    <li><a href="#">Slides</a> | <a href="#">Lecture Notes</a></li>
+                    <li>Topics:
+                        <ul>
+                            <li>Data Ingestion Architectures</li>
+                            <li>Batch vs. Stream Processing</li>
+                            <li>Data Lake Design Principles</li>
+                            <li>Database Selection for Different Use Cases</li>
+                            <li>Data Warehousing Concepts</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="lecture-section">
+                <h3>Module 3: Data Processing and Computation</h3>
+                <ul>
+                    <li><a href="#">Slides</a> | <a href="#">Lecture Notes</a></li>
+                    <li>Topics:
+                        <ul>
+                            <li>Distributed Computing Frameworks</li>
+                            <li>ETL/ELT Architectures</li>
+                            <li>Serverless Data Processing</li>
+                            <li>GPU/TPU Acceleration Architectures</li>
+                            <li>Resource Management and Scheduling</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="lecture-section">
+                <h3>Module 4: Machine Learning Systems Architecture</h3>
+                <ul>
+                    <li><a href="#">Slides</a> | <a href="#">Lecture Notes</a></li>
+                    <li>Topics:
+                        <ul>
+                            <li>ML Pipeline Design</li>
+                            <li>Feature Engineering Systems</li>
+                            <li>Model Training Infrastructure</li>
+                            <li>Model Serving and Inference Architectures</li>
+                            <li>Model Monitoring and Observability</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="lecture-section">
+                <h3>Module 5: MLOps and Production Systems</h3>
+                <ul>
+                    <li><a href="#">Slides</a> | <a href="#">Lecture Notes</a></li>
+                    <li>Topics:
+                        <ul>
+                            <li>CI/CD for Data Science</li>
+                            <li>Containerization and Orchestration</li>
+                            <li>Model Registry and Versioning</li>
+                            <li>A/B Testing Infrastructure</li>
+                            <li>Deployment Strategies</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="lecture-section">
+                <h3>Module 6: Scaling and Optimization</h3>
+                <ul>
+                    <li><a href="#">Slides</a> | <a href="#">Lecture Notes</a></li>
+                    <li>Topics:
+                        <ul>
+                            <li>Horizontal vs. Vertical Scaling</li>
+                            <li>Cost Optimization Strategies</li>
+                            <li>Performance Tuning</li>
+                            <li>Caching Architectures</li>
+                            <li>High Availability Design</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="lecture-section">
+                <h3>Module 7: Data Science Architecture in the Cloud</h3>
+                <ul>
+                    <li><a href="#">Slides</a> | <a href="#">Lecture Notes</a></li>
+                    <li>Topics:
+                        <ul>
+                            <li>Cloud Provider Comparison</li>
+                            <li>Multi-cloud and Hybrid Architectures</li>
+                            <li>Managed Services vs. Self-hosted Solutions</li>
+                            <li>Infrastructure as Code</li>
+                            <li>Cloud Security Considerations</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="content">
+            <h2 class="subtitle">Case Studies</h2>
+            <ul>
+                <li><a href="#">Real-time Recommendation System Architecture</a></li>
+                <li><a href="#">Computer Vision Pipeline for Manufacturing</a></li>
+                <li><a href="#">NLP Model Deployment for Customer Service</a></li>
+                <li><a href="#">Fraud Detection System Architecture</a></li>
+            </ul>
+        </div>
+        
+        <div class="content">
+            <h2 class="subtitle">Assignments</h2>
+            <ul>
+                <li><a href="#">Assignment 1: Architecture Design Document</a> (Due: TBA)</li>
+                <li><a href="#">Assignment 2: Data Pipeline Implementation</a> (Due: TBA)</li>
+                <li><a href="#">Assignment 3: ML System Deployment</a> (Due: TBA)</li>
+                <li><a href="#">Final Project: End-to-End Data Science System</a> (Due: TBA)</li>
+            </ul>
+        </div>
+        
+        <div class="content">
+            <h2 class="subtitle">Recommended Tools</h2>
+            <ul>
+                <li><strong>Data Processing:</strong> Apache Spark, Apache Beam, Dask</li>
+                <li><strong>Orchestration:</strong> Airflow, Prefect, Dagster</li>
+                <li><strong>ML Platforms:</strong> MLflow, Kubeflow, SageMaker</li>
+                <li><strong>Containers:</strong> Docker, Kubernetes</li>
+                <li><strong>Monitoring:</strong> Prometheus, Grafana, ELK Stack</li>
+            </ul>
+        </div>
+        
+        <div class="footer">
+            <p>Last updated: June 21, 2025</p>
+            <p>Contact: <a href="mailto:radchaneeporn.c@gmail.com">radchaneeporn.c@gmail.com</a></p>
+        </div>
+    </div>
+</body>
+</html>

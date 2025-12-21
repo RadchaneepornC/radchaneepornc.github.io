@@ -25,7 +25,7 @@
 		<br>
                 <p>I'm a graduate student in computer science at the Department of Computer Engineering, 
   Chulalongkorn University in Bangkok, Thailand, under the supervision of 
-  <a href="https://scholar.google.com/citations?user=0mFI2A0AAAAJ&hl=en">Assoc. Prof. Peerapon Vateekul, Ph.D.</a> with 
+  <a href="https://scholar.google.com/citations?user=0mFI2A0AAAAJ&hl=en">Professor Peerapon Vateekul, Ph.D.</a> with 
   <a href="https://scholar.google.com/citations?user=L56sgUQAAAAJ&hl=en">Titipat Achakulvisut, Ph.D.</a> and <a href="https://scholar.google.com/citations?user=zxobDIUAAAAJ&hl=en">Professor Arunya Tuicomepee, Ph.D.</a> as co-advisors.
 </p>
 		   
@@ -229,7 +229,7 @@
                 Your browser does not support the video tag.
                 </video></div>
                 <img
-                  src='images/Typhoon.gif'
+                  src='images/DmindChatbot.jpg'
                   width="160" xmlns="http://www.w3.org/2000/svg"
                 > 
               </div>
@@ -247,19 +247,27 @@
             <td style="padding:20px;width:75%;vertical-align:middle">
               <a>
                 <papertitle>
-			Finetuning
+			DMIND Chatbot
 		</papertitle>
               </a>
 	      <br>
-              <a href="https://github.com/RadchaneepornC/FinetuningProject">Project Github</a>
+              <!-- <a href="https://github.com/RadchaneepornC/FinetuningProject">Project Github</a> -->
 		<br>
               <p>
-		I conducted fine-tuning on Thai LLMs, specifically Typhoon 7B from SCB 10x, using the Thai wiki dataset V3 to explore improvements in the model for Q&A tasks
+		LLM based mental health support chatbot in Thai. Currently, Dmind Chatbot is continue researching and developing under Center of Excellence in Digital and AI for Mental Health (AIMET: https://aimet.tech/en/home/)
+
+    <br>
+                <STRONG>Radchaneeporn Changpun</STRONG>, Naphat Khoprasertthaworn, Pipat Jongpipatchai, Theerin Petcharat, Krittapas Rungsimontuchat
+		
+	      <br>
               
-	      <li>Preprocessed and optimized open-source datasets, designing effective prompts for enhanced instruction fine-tuning</li>
-	      <li>Implemented advanced Parameter-efficient fine-tuning techniques, and QLoRA, to optimize Typhoon 7B model performance</li>
-	      <li>Conducted thorough quality analysis through human evaluation, identifying areas for further study and improvement in question-answering tasks</li>
-		      
+	      <li>Design initial architecture for chatbot framework</li>
+	      <li>Research and design multi-turn chatbot workflow LLMs with mental health support knowledge</li>
+	      <li>Coordinate with domain experts to design and improve the chatbot to meet domain practices</li>
+        <li>Conduct experiments to find optimal techniques for the chatbot</li>
+        <li>Led research and developer teams for the first phase of the project</li>
+        <li>Led interns in designing and deploying the chatbot for the first phase of the project</li>
+		    
 	      </p>
             </td>
           </tr>
@@ -275,7 +283,47 @@
             </tr>
           </tbody></table>
           <table style="width:100%;border:0px;border-spacing:0px;border-collapse:separate;margin-right:auto;margin-left:auto;"><tbody>
+  <tr onmouseout="hypernerf_stop()" onmouseover="hypernerf_start()">
+            <td style="padding:20px;width:25%;vertical-align:middle">
+              <div class="one">
+                <div class="two" id='hypernerf_image'><video  width=100% height=100% muted autoplay loop>
+                <source src="images/hypernerf_after.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+                </video></div>
+                <img
+                  src='images/Framework_Architecture.png'
+                  width="160" xmlns="http://www.w3.org/2000/svg"
+                > 
+              </div>
+              <script type="text/javascript">
+                function hypernerf_start() {
+                  document.getElementById('hypernerf_image').style.opacity = "1";
+                }
 
+                function hypernerf_stop() {
+                  document.getelementbyid('hypernerf_image').style.opacity = "0";
+                }
+                hypernerf_stop()
+              </script>
+            </td>
+            <td style="padding:20px;width:75%;vertical-align:middle">
+        	<a>
+                <papertitle>
+			Agentic Stage-Based LLM Framework for Multi-Turn Mental Health Support Conversations in Thai
+		</papertitle>
+              	</a>
+              <br>
+                <STRONG>Radchaneeporn Changpun</STRONG>, Naphat Khoprasertthaworn, Pipat Jongpipatchai
+		
+	      <br>
+              <a>The 20 th International Joint Symposium on Artificial Intelligence and Natural Language Processing</a>
+              <a>Waiting for official publication</a>
+		<br>
+              <p>
+		We developed an agentic stage-based LLM framework that guides conversations through five counseling stages, drawing from Person-Centered Therapy and Acceptance and Commitment Therapy. Our system uses three specialized types of agents: stage based agent for each framework stage, another one approach selection agent selects appropriate counseling approaches, and monitoring agent manages stage transitions. The framework achieved a 79% positive user reaction rate, significantly outperforming baselines. Real user testing and evaluation by counseling practitioners confirmed improvements across seven of eight mental health support metrics, demonstrating potential for scalable LLM-based mental health support in Thailand.
+              </p>
+            </td>
+          </tr>
 	<tr onmouseout="hypernerf_stop()" onmouseover="hypernerf_start()">
             <td style="padding:20px;width:25%;vertical-align:middle">
               <div class="one">

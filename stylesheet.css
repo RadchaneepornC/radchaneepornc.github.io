@@ -134,3 +134,123 @@ span.highlight {
   background-color: #ffffd0;
 }
 
+/* Mobile Responsive Styles */
+@media screen and (max-width: 768px) {
+  /* Adjust body and table padding for mobile */
+  body {
+    padding: 10px;
+  }
+
+  /* Make tables full width and adjust padding */
+  table {
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  td {
+    padding: 10px !important;
+  }
+
+  /* Stack intro section vertically on mobile */
+  tr > td:first-child {
+    display: block;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Center profile image and adjust size */
+  td[style*="width:40%"] {
+    display: block;
+    width: 100% !important;
+    max-width: 100% !important;
+    text-align: center;
+    padding-top: 20px !important;
+  }
+
+  td[style*="width:40%"] img {
+    width: 60% !important;
+    max-width: 200px !important;
+    height: auto;
+  }
+
+  /* Adjust text section width */
+  td[style*="width:63%"] {
+    width: 100% !important;
+  }
+
+  /* Make project/publication images stack on mobile */
+  td[style*="width:25%"] {
+    display: block;
+    width: 100% !important;
+    text-align: center;
+    padding-bottom: 15px !important;
+  }
+
+  td[style*="width:75%"] {
+    display: block;
+    width: 100% !important;
+  }
+
+  /* Adjust font sizes for mobile */
+  .name {
+    font-size: 24px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+
+  body, td, th, tr, p, a, strong {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .papertitle {
+    font-size: 15px;
+  }
+
+  /* Adjust image containers */
+  .one, .two {
+    width: 140px !important;
+    height: 140px !important;
+    margin: 0 auto;
+  }
+
+  .one img, .two img {
+    width: 140px !important;
+    height: auto;
+  }
+
+  /* Better link spacing on mobile */
+  p[style*="text-align:center"] {
+    line-height: 2;
+    padding: 10px 0;
+  }
+
+  /* Improve list readability */
+  li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+
+  /* Adjust section padding */
+  td[style*="padding:20px"] {
+    padding: 15px 10px !important;
+  }
+}
+
+/* Tablet responsive styles */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  table {
+    max-width: 700px;
+  }
+
+  td[style*="width:40%"] img {
+    width: 90%;
+  }
+
+  .name {
+    font-size: 28px;
+  }
+}
+

@@ -681,7 +681,7 @@
 
                 <section id="introduction">
                     <h2>Introduction</h2>
-                    <p>
+                    <!-- <p>
                         Large Language Models (LLMs) have revolutionized natural language processing, but how exactly 
                         do they generate text? Understanding the decoding strategies behind text generation is crucial 
                         for anyone working with LLMs, whether you're fine-tuning models, building applications, or 
@@ -692,7 +692,7 @@
                         probability distributions to advanced sampling techniques. We'll examine how different decoding 
                         strategies affect output quality, creativity, and consistency, and when to use each approach 
                         in practice.
-                    </p>
+                    </p> -->
 
                     <div class="table-of-contents">
                         <h3>Table of Contents</h3>
@@ -778,13 +778,13 @@
 
                 <section id="foundation">
                     <h2>Foundation: How LLMs Generate Text</h2>
-                    <p>
+                    <!-- <p>
                         At their core, LLMs are sophisticated next-token prediction machines. Understanding this 
                         fundamental process is essential before diving into specific decoding strategies.<a href="#ref-2" class="reference-link">[2]</a>
-                    </p>
+                    </p> -->
                     
                     <h3 id="next-token-prediction">Predicting the Next Token from Probability Distributions</h3>
-                    <p>
+                    <!-- <p>
                         LLMs don't generate entire sentences at once. Instead, they predict one token at a time, 
                         where a token can be a word, subword, or even a single character depending on the tokenization 
                         scheme. For each position in the sequence, the model outputs a probability distribution over 
@@ -802,7 +802,7 @@
                         The decoding strategy determines how we select the next token from this distribution. 
                         This selection process is repeated iteratively, with each new token being appended to the 
                         sequence and fed back into the model to predict the next token.
-                    </p>
+                    </p> -->
 
                     <div class="content-image">
                         <span class="placeholder-text">Token Prediction Visualization</span>
@@ -810,7 +810,7 @@
                     <p class="image-caption">Figure 2: Illustration of probability distribution over vocabulary for next token prediction</p>
 
                     <h3 id="decoder-transformer">The Role of the Decoder Transformer</h3>
-                    <p>
+                    <!-- <p>
                         Modern LLMs are built on the decoder-only transformer architecture, pioneered by GPT models. 
                         Unlike encoder-decoder models (like the original Transformer or T5), decoder-only architectures 
                         are specifically optimized for autoregressive text generation.<a href="#ref-3" class="reference-link">[3]</a>
@@ -827,10 +827,10 @@
                         <br>• <strong>Autoregressive:</strong> Each prediction depends on all previous predictions
                         <br>• <strong>Parallel training:</strong> Despite sequential generation, training can be parallelized
                         <br>• <strong>Positional encoding:</strong> Position information is crucial for understanding sequence order
-                    </p>
+                    </p> -->
 
                     <h3 id="logits-to-probabilities">From Logits to Probabilities (Softmax)</h3>
-                    <p>
+                    <!-- <p>
                         The raw output of the transformer's final layer consists of logits—unnormalized scores for 
                         each token in the vocabulary. These logits must be converted into a proper probability 
                         distribution using the softmax function:
@@ -849,26 +849,26 @@
                         techniques before sampling. Understanding this conversion is crucial because many decoding 
                         parameters (like temperature) are applied before the softmax, directly affecting the shape 
                         of the final distribution.
-                    </p>
+                    </p> -->
                 </section>
 
                 <section id="decoding-strategies">
                     <h2>Decoding Strategies: Deterministic vs Sampling</h2>
-                    <p>
+                    <!-- <p>
                         Once we have a probability distribution, we need to decide how to select the next token. 
                         This decision fundamentally determines whether our outputs are consistent and predictable 
                         or creative and varied.<a href="#ref-4" class="reference-link">[4]</a>
-                    </p>
+                    </p> -->
 
                     <h3 id="deterministic-methods">Deterministic Methods (Minimize Randomness)</h3>
-                    <p>
+                    <!-- <p>
                         Deterministic methods aim to produce consistent, reproducible outputs by systematically 
                         selecting tokens based on their probabilities without randomness. These methods are ideal 
                         when you need predictable results or want to minimize variability.
-                    </p>
+                    </p> -->
 
                     <h4 id="greedy-decoding">Greedy Decoding</h4>
-                    <p>
+                    <!-- <p>
                         Greedy decoding is the simplest strategy: always pick the token with the highest probability. 
                         If "mat" has a 35% probability and is the most likely token, greedy decoding will always 
                         choose "mat"—no exceptions, no randomness.
@@ -890,7 +890,7 @@
                     <p>
                         <strong>Best for:</strong> Factual question answering, translation, summarization, tasks 
                         requiring consistency
-                    </p>
+                    </p> -->
 
                     <div class="content-image">
                         <span class="placeholder-text">Greedy Decoding Diagram</span>
@@ -898,7 +898,7 @@
                     <p class="image-caption">Figure 3: Greedy decoding always selects the highest probability token at each step</p>
 
                     <h4 id="beam-search">Beam Search</h4>
-                    <p>
+                    <!-- <p>
                         Beam search addresses some limitations of greedy decoding by exploring multiple candidate 
                         sequences simultaneously. Instead of committing to a single token at each step, it maintains 
                         a "beam" of the top k most promising sequences.
@@ -926,10 +926,10 @@
                     </p>
                     <p>
                         <strong>Best for:</strong> Machine translation, summarization, structured output generation
-                    </p>
+                    </p> -->
 
                     <h3 id="sampling-methods">Sampling Methods (Intentional Randomness)</h3>
-                    <p>
+                    <!-- <p>
                         Unlike deterministic methods, sampling methods introduce controlled randomness to generate 
                         more diverse and creative outputs. The key is managing this randomness effectively.
                     </p>
@@ -950,10 +950,10 @@
                     </p>
                     <p>
                         The art of using LLMs effectively lies in understanding when to favor which end of this spectrum.
-                    </p>
+                    </p> -->
 
                     <h4 id="temperature">Temperature Scaling (Modifying the Distribution)</h4>
-                    <p>
+                    <!-- <p>
                         Temperature is perhaps the most important parameter in sampling-based generation. It controls 
                         the randomness by reshaping the probability distribution <em>before</em> sampling occurs.
                     </p>
@@ -983,10 +983,10 @@
                     <div class="content-image">
                         <span class="placeholder-text">Temperature Effect Visualization</span>
                     </div>
-                    <p class="image-caption">Figure 4: How temperature reshapes probability distributions from sharp (low T) to flat (high T)</p>
+                    <p class="image-caption">Figure 4: How temperature reshapes probability distributions from sharp (low T) to flat (high T)</p> -->
 
                     <h4 id="top-k-sampling">Top-k Sampling (Filtering the Distribution)</h4>
-                    <p>
+                    <!-- <p>
                         Top-k sampling filters the probability distribution by keeping only the top k most likely 
                         tokens and redistributing their probabilities. All other tokens are given zero probability.
                     </p>
@@ -1013,10 +1013,10 @@
                     </p>
                     <p>
                         <strong>Typical values:</strong> k = 10-50 for general use, k = 5-10 for more focused output
-                    </p>
+                    </p> -->
 
                     <h4 id="top-p-sampling">Top-p (Nucleus) Sampling</h4>
-                    <p>
+                    <!-- <p>
                         Top-p sampling (also called nucleus sampling) addresses the main limitation of top-k by 
                         using an adaptive cutoff. Instead of keeping a fixed number of tokens, it keeps the smallest 
                         set of tokens whose cumulative probability exceeds a threshold p.<a href="#ref-6" class="reference-link">[6]</a>
@@ -1046,10 +1046,10 @@
                     </p>
                     <p>
                         <strong>Typical values:</strong> p = 0.9-0.95 for general use, p = 0.95-1.0 for creative tasks
-                    </p>
+                    </p> -->
 
                     <h3 id="combining-strategies">How These Combine in Practice</h3>
-                    <p>
+                    <!-- <p>
                         In practice, sampling techniques are often combined to leverage their complementary strengths. 
                         A typical generation pipeline might look like:
                     </p>
@@ -1069,18 +1069,18 @@
                         Many APIs (OpenAI, Anthropic, etc.) allow setting both temperature and top_p simultaneously. 
                         When both are specified, temperature is typically applied first to reshape the distribution, 
                         then top-p filters the adjusted distribution.
-                    </p>
+                    </p> -->
                 </section>
 
                 <section id="implementation">
                     <h2>Implementation Guide</h2>
-                    <p>
+                    <!-- <p>
                         Understanding the theory is one thing, but applying these techniques effectively requires 
                         practical knowledge of when and how to use each method.
-                    </p>
+                    </p> -->
 
                     <h3 id="when-to-use">When to Use Which Method</h3>
-                    <p>
+                    <!-- <p>
                         <strong>Use Greedy Decoding / Low Temperature when:</strong>
                         <br>• You need consistent, reproducible outputs
                         <br>• The task is factual (Q&A, data extraction, classification)
@@ -1111,10 +1111,10 @@
                         <br>• You want to balance quality and diversity
                         <br>• You're unsure of the right top-k value
                         <br>• You need context-aware token selection
-                    </p>
+                    </p> -->
 
                     <h3 id="parameter-settings">Setting Parameters for Different Use Cases</h3>
-                    <p>
+                    <!-- <p>
                         Here are recommended starting points for common scenarios:
                     </p>
                     <p>
@@ -1152,15 +1152,15 @@
                         <br>• Beam search with width 4-5
                         <br>• Or temperature: 0.3, top-p: 0.95
                         <br>• Goal: Accurate, fluent translation
-                    </p>
+                    </p> -->
 
                     <div class="content-image">
                         <span class="placeholder-text">Parameter Settings Comparison Chart</span>
                     </div>
-                    <p class="image-caption">Figure 5: Visual guide to parameter settings across different use cases</p>
+                    <!-- <p class="image-caption">Figure 5: Visual guide to parameter settings across different use cases</p> -->
 
                     <h3 id="api-options">Understanding API Options</h3>
-                    <p>
+                    <!-- <p>
                         Different LLM providers expose these parameters with varying names and defaults. Here's how 
                         to configure them in popular APIs:
                     </p>
@@ -1195,17 +1195,17 @@
                         <br>• Monitor output quality metrics relevant to your task
                         <br>• Consider A/B testing different parameter combinations
                         <br>• Document your parameter choices for reproducibility
-                    </p>
+                    </p> -->
                 </section>
 
                 <section id="resources">
                     <h2>Recommended Resources for Further Learning</h2>
-                    <p>
+                    <!-- <p>
                         Deepen your understanding and explore related topics with these curated resources.
-                    </p>
+                    </p> -->
 
                     <h3 id="deep-dive-resources">Deep Dive on This Topic</h3>
-                    <p>
+                    <!-- <p>
                         <strong>Papers:</strong>
                         <br>• Holtzman et al. (2020) - "The Curious Case of Neural Text Degeneration" - Original nucleus sampling paper
                         <br>• Fan et al. (2018) - "Hierarchical Neural Story Generation" - Early work on sampling strategies
@@ -1222,10 +1222,10 @@
                         <br>• Hugging Face Inference API playground - Experiment with parameters
                         <br>• OpenAI Playground - Test different settings interactively
                         <br>• LangChain documentation - Implementation examples
-                    </p>
+                    </p> -->
 
                     <h3 id="related-topics">Related Topics to Explore</h3>
-                    <p>
+                    <!-- <p>
                         <strong>Foundational Concepts:</strong>
                         <br>• [Transformer Architecture](content2.html) - Deep dive into attention mechanisms
                         <br>• [Tokenization](content3.html) - How text becomes tokens
@@ -1242,7 +1242,7 @@
                         <br>• [RAG Systems](content8.html) - Retrieval-augmented generation
                         <br>• [Agent Frameworks](content9.html) - Building autonomous AI agents
                         <br>• [Production Deployment](content10.html) - Scaling LLMs in production
-                    </p>
+                    </p> -->
                 </section>
 
                 <section id="references" class="references">

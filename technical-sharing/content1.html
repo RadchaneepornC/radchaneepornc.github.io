@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Blog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #0a0a0a;
+            color: #d0d0d0;
+            line-height: 1.7;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 280px;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            padding: 60px 20px 40px 40px;
+            background-color: #0a0a0a;
+            border-right: 1px solid #1a1a1a;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 28px;
+        }
+
+        .nav-list {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 2px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 10px 14px;
+            color: #777;
+            text-decoration: none;
+            font-size: 14px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            position: relative;
+            font-weight: 400;
+        }
+
+        .nav-link:hover {
+            color: #e0e0e0;
+            background-color: #131313;
+        }
+
+        .nav-link.active {
+            color: #fff;
+            background-color: #161616;
+            font-weight: 500;
+            box-shadow: 
+                0 4px 16px rgba(255, 255, 255, 0.06),
+                0 2px 8px rgba(255, 255, 255, 0.03),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        }
+
+        /* Content Styles */
+        .content {
+            flex: 1;
+            padding: 60px 80px;
+            max-width: 800px;
+        }
+
+        article {
+            margin-bottom: 80px;
+        }
+
+        h1 {
+            font-size: 52px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 16px;
+            line-height: 1.1;
+            letter-spacing: -1px;
+        }
+
+        .meta {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 48px;
+            font-weight: 400;
+        }
+
+        .hero-image {
+            width: 100%;
+            height: 420px;
+            background: linear-gradient(135deg, #141414 0%, #1f1f1f 50%, #141414 100%);
+            border-radius: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #1a1a1a;
+        }
+
+        .hero-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 40px,
+                    rgba(255, 255, 255, 0.02) 40px,
+                    rgba(255, 255, 255, 0.02) 80px
+                );
+        }
+
+        .hero-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .placeholder-text {
+            color: #3a3a3a;
+            font-size: 16px;
+            font-weight: 500;
+            z-index: 1;
+            letter-spacing: 0.5px;
+        }
+
+        .content-image {
+            width: 100%;
+            height: 320px;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            border-radius: 12px;
+            margin: 32px 0 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #1a1a1a;
+        }
+
+        .content-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 30px,
+                    rgba(255, 255, 255, 0.015) 30px,
+                    rgba(255, 255, 255, 0.015) 60px
+                );
+        }
+
+        .content-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-caption {
+            text-align: center;
+            font-size: 13px;
+            color: #555;
+            font-style: italic;
+            margin-top: 12px;
+            margin-bottom: 48px;
+            font-weight: 400;
+        }
+
+        /* Table of Contents */
+        .table-of-contents {
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            margin: 56px 0;
+            box-shadow: none;
+        }
+
+        .table-of-contents h3 {
+            font-size: 22px;
+            color: #fff;
+            margin: 0 0 32px 0;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .toc-list {
+            list-style: none;
+            counter-reset: toc-counter;
+        }
+
+        .toc-item {
+            counter-increment: toc-counter;
+            margin-bottom: 32px;
+        }
+
+        .toc-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .toc-link {
+            display: flex;
+            align-items: baseline;
+            color: #999;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            padding: 0;
+            border-radius: 0;
+            transition: all 0.2s ease;
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .toc-link::before {
+            content: counter(toc-counter);
+            font-weight: 700;
+            color: #444;
+            margin-right: 12px;
+            min-width: 24px;
+            font-size: 15px;
+        }
+
+        .toc-link:hover {
+            color: #fff;
+            background-color: transparent;
+            transform: translateX(2px);
+        }
+
+        .toc-link:hover::before {
+            color: #6b9fff;
+        }
+
+        /* Nested TOC items */
+        .toc-nested {
+            list-style: none;
+            margin-top: 12px;
+            margin-left: 36px;
+            margin-bottom: 8px;
+            padding-left: 0;
+            border-left: none;
+        }
+
+        .toc-nested-item {
+            margin-bottom: 8px;
+        }
+
+        .toc-nested-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .toc-nested-link {
+            display: flex;
+            align-items: center;
+            color: #6a6a6a;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 0;
+            border-radius: 0;
+            transition: all 0.2s ease;
+            font-weight: 400;
+        }
+
+        .toc-nested-link::before {
+            content: "–";
+            margin-right: 10px;
+            color: #3a3a3a;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .toc-nested-link:hover {
+            color: #d0d0d0;
+            background-color: transparent;
+            transform: translateX(2px);
+        }
+
+        .toc-nested-link:hover::before {
+            color: #6b9fff;
+            transform: none;
+        }
+
+        /* Deep nested TOC items (3rd level - h4 headings) */
+        .toc-nested-deep {
+            list-style: none;
+            margin-top: 8px;
+            margin-left: 20px;
+            padding-left: 0;
+            border-left: none;
+        }
+
+        .toc-nested-deep-item {
+            margin-bottom: 6px;
+        }
+
+        .toc-nested-deep-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .toc-nested-deep-link {
+            display: flex;
+            align-items: center;
+            color: #5a5a5a;
+            text-decoration: none;
+            font-size: 12px;
+            padding: 0;
+            border-radius: 0;
+            transition: all 0.2s ease;
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        .toc-nested-deep-link::before {
+            content: "·";
+            margin-right: 8px;
+            color: #2a2a2a;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .toc-nested-deep-link:hover {
+            color: #b0b0b0;
+            background-color: transparent;
+            transform: translateX(2px);
+        }
+
+        .toc-nested-deep-link:hover::before {
+            color: #6b9fff;
+        }
+
+        section {
+            margin-bottom: 60px;
+            scroll-margin-top: 40px;
+        }
+
+        h2 {
+            font-size: 36px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 24px;
+            margin-top: 64px;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+        }
+
+        h2:first-of-type {
+            margin-top: 0;
+        }
+
+        h3 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #e8e8e8;
+            margin-bottom: 18px;
+            margin-top: 40px;
+            scroll-margin-top: 40px;
+            letter-spacing: -0.3px;
+        }
+
+        h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #d0d0d0;
+            margin-bottom: 14px;
+            margin-top: 28px;
+            scroll-margin-top: 40px;
+        }
+
+        p {
+            margin-bottom: 24px;
+            color: #a8a8a8;
+            font-size: 16px;
+            line-height: 1.75;
+        }
+
+        code {
+            background-color: #1a1a1a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #e0e0e0;
+        }
+
+        .reference-link {
+            color: #6b9fff;
+            text-decoration: none;
+            font-size: 12px;
+            vertical-align: super;
+            font-weight: 600;
+            margin-left: 2px;
+            transition: color 0.2s ease;
+        }
+
+        .reference-link:hover {
+            color: #8fb3ff;
+            text-decoration: underline;
+        }
+
+        .references {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid #1a1a1a;
+        }
+
+        .references h2 {
+            font-size: 24px;
+            margin-bottom: 24px;
+        }
+
+        .reference-list {
+            list-style: none;
+            counter-reset: reference-counter;
+        }
+
+        .reference-item {
+            counter-increment: reference-counter;
+            margin-bottom: 20px;
+            padding-left: 32px;
+            position: relative;
+            font-size: 14px;
+            color: #888;
+            line-height: 1.6;
+        }
+
+        .reference-item::before {
+            content: "[" counter(reference-counter) "]";
+            position: absolute;
+            left: 0;
+            color: #6b9fff;
+            font-weight: 600;
+        }
+
+        .reference-item a {
+            color: #6b9fff;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .reference-item a:hover {
+            text-decoration: underline;
+        }
+
+        /* Scrollbar Styles */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #2a2a2a;
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #3a3a3a;
+        }
+
+        /* Right Sidebar Styles */
+        .right-sidebar {
+            width: 260px;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            padding: 60px 40px 40px 20px;
+            background-color: #0a0a0a;
+            border-left: 1px solid #1a1a1a;
+            overflow-y: auto;
+        }
+
+        .right-sidebar h3 {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 24px;
+        }
+
+        .sub-nav-list {
+            list-style: none;
+        }
+
+        .sub-nav-item {
+            margin-bottom: 2px;
+        }
+
+        .sub-nav-link {
+            display: block;
+            padding: 8px 12px;
+            color: #6a6a6a;
+            text-decoration: none;
+            font-size: 13px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            line-height: 1.4;
+            font-weight: 400;
+        }
+
+        .sub-nav-link:hover {
+            color: #d0d0d0;
+            background-color: #121212;
+        }
+
+        .sub-nav-link.active {
+            color: #fff;
+            background-color: #161616;
+            font-weight: 500;
+            box-shadow: 
+                0 3px 12px rgba(255, 255, 255, 0.05),
+                0 1px 5px rgba(255, 255, 255, 0.025),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+        }
+
+        /* Nested sub navigation */
+        .sub-nav-nested {
+            list-style: none;
+            margin-left: 16px;
+            margin-top: 4px;
+            padding-left: 12px;
+            border-left: 1px solid #1a1a1a;
+        }
+
+        .sub-nav-nested .sub-nav-item {
+            margin-bottom: 2px;
+        }
+
+        .sub-nav-nested .sub-nav-link {
+            padding: 6px 10px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .sub-nav-nested .sub-nav-link:hover {
+            color: #b0b0b0;
+        }
+
+        .sub-nav-nested .sub-nav-link.active {
+            color: #e0e0e0;
+            background-color: #161616;
+        }
+
+        .right-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .right-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .right-sidebar::-webkit-scrollbar-thumb {
+            background: #2a2a2a;
+            border-radius: 3px;
+        }
+
+        .right-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #3a3a3a;
+        }
+
+        .section-divider {
+            height: 1px;
+            background-color: #1a1a1a;
+            margin: 20px 0;
+        }
+
+        /* Footer Styles */
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid #1a1a1a;
+            text-align: center;
+            color: #555;
+            font-size: 13px;
+        }
+
+        .footer p {
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .footer a {
+            color: #6b9fff;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer a:hover {
+            color: #8fb3ff;
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .right-sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 968px) {
+            .sidebar {
+                display: none;
+            }
+
+            .content {
+                padding: 40px 24px;
+            }
+
+            h1 {
+                font-size: 36px;
+            }
+
+            h2 {
+                font-size: 26px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <h2>Contents</h2>
+            <nav>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="#introduction" class="nav-link">Introduction</a></li>
+                    <li class="nav-item"><a href="#foundation" class="nav-link">Foundation</a></li>
+                    <li class="nav-item"><a href="#decoding-strategies" class="nav-link">Decoding Strategies</a></li>
+                    <li class="nav-item"><a href="#implementation" class="nav-link">Implementation</a></li>
+                    <li class="nav-item"><a href="#resources" class="nav-link">Resources</a></li>
+                    <li class="nav-item"><a href="#references" class="nav-link">References</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <article>
+                <h1>Why Don't LLMs Always Respond Consistently to the Same Prompt?</h1>
+                <div class="meta">Published on February 15, 2026 • 12 min read</div>
+
+                <div class="hero-image">
+                    <span class="placeholder-text">LLM Text Generation Visualization</span>
+                </div>
+                <p class="image-caption">Figure 1: Visualization of token generation process in large language models</p>
+
+                <section id="introduction">
+                    <h2>Introduction</h2>
+                    <p>
+                        Large Language Models (LLMs) have revolutionized natural language processing, but how exactly 
+                        do they generate text? Understanding the decoding strategies behind text generation is crucial 
+                        for anyone working with LLMs, whether you're fine-tuning models, building applications, or 
+                        simply trying to get better results from API calls.<a href="#ref-1" class="reference-link">[1]</a>
+                    </p>
+                    <p>
+                        This guide explores the fundamental mechanisms of text generation in LLMs, from the basic 
+                        probability distributions to advanced sampling techniques. We'll examine how different decoding 
+                        strategies affect output quality, creativity, and consistency, and when to use each approach 
+                        in practice.
+                    </p>
+
+                    <div class="table-of-contents">
+                        <h3>Table of Contents</h3>
+                        <ol class="toc-list">
+                            <li class="toc-item">
+                                <a href="#foundation" class="toc-link">Foundation: How LLMs Generate Text</a>
+                                <ul class="toc-nested">
+                                    <li class="toc-nested-item">
+                                        <a href="#next-token-prediction" class="toc-nested-link">Next Token Prediction</a>
+                                    </li>
+                                    <li class="toc-nested-item">
+                                        <a href="#decoder-transformer" class="toc-nested-link">The Decoder Transformer</a>
+                                    </li>
+                                    <li class="toc-nested-item">
+                                        <a href="#logits-to-probabilities" class="toc-nested-link">From Logits to Probabilities</a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="toc-item">
+                                <a href="#decoding-strategies" class="toc-link">Decoding Strategies</a>
+                                <ul class="toc-nested">
+                                    <li class="toc-nested-item">
+                                        <a href="#deterministic-methods" class="toc-nested-link">Deterministic Methods</a>
+                                        <ul class="toc-nested-deep">
+                                            <li class="toc-nested-deep-item">
+                                                <a href="#greedy-decoding" class="toc-nested-deep-link">Greedy Decoding</a>
+                                            </li>
+                                            <li class="toc-nested-deep-item">
+                                                <a href="#beam-search" class="toc-nested-deep-link">Beam Search</a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li class="toc-nested-item">
+                                        <a href="#sampling-methods" class="toc-nested-link">Sampling Methods</a>
+                                        <ul class="toc-nested-deep">
+                                            <li class="toc-nested-deep-item">
+                                                <a href="#why-sampling" class="toc-nested-deep-link">Why Use Sampling?</a>
+                                            </li>
+                                            <li class="toc-nested-deep-item">
+                                                <a href="#temperature" class="toc-nested-deep-link">Temperature Scaling</a>
+                                            </li>
+                                            <li class="toc-nested-deep-item">
+                                                <a href="#top-k-sampling" class="toc-nested-deep-link">Top-k Sampling</a>
+                                            </li>
+                                            <li class="toc-nested-deep-item">
+                                                <a href="#top-p-sampling" class="toc-nested-deep-link">Top-p (Nucleus) Sampling</a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li class="toc-nested-item">
+                                        <a href="#combining-strategies" class="toc-nested-link">Combining Strategies in Practice</a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="toc-item">
+                                <a href="#implementation" class="toc-link">Implementation Guide</a>
+                                <ul class="toc-nested">
+                                    <li class="toc-nested-item">
+                                        <a href="#when-to-use" class="toc-nested-link">When to Use Which Method</a>
+                                    </li>
+                                    <li class="toc-nested-item">
+                                        <a href="#parameter-settings" class="toc-nested-link">Parameter Settings</a>
+                                    </li>
+                                    <li class="toc-nested-item">
+                                        <a href="#api-options" class="toc-nested-link">Understanding API Options</a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="toc-item">
+                                <a href="#resources" class="toc-link">Recommended Resources</a>
+                                <ul class="toc-nested">
+                                    <li class="toc-nested-item">
+                                        <a href="#deep-dive-resources" class="toc-nested-link">Deep Dive on This Topic</a>
+                                    </li>
+                                    <li class="toc-nested-item">
+                                        <a href="#related-topics" class="toc-nested-link">Related Topics</a>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
+                </section>
+
+                <section id="foundation">
+                    <h2>Foundation: How LLMs Generate Text</h2>
+                    <p>
+                        At their core, LLMs are sophisticated next-token prediction machines. Understanding this 
+                        fundamental process is essential before diving into specific decoding strategies.<a href="#ref-2" class="reference-link">[2]</a>
+                    </p>
+                    
+                    <h3 id="next-token-prediction">Predicting the Next Token from Probability Distributions</h3>
+                    <p>
+                        LLMs don't generate entire sentences at once. Instead, they predict one token at a time, 
+                        where a token can be a word, subword, or even a single character depending on the tokenization 
+                        scheme. For each position in the sequence, the model outputs a probability distribution over 
+                        its entire vocabulary—typically tens of thousands of possible tokens.
+                    </p>
+                    <p>
+                        For example, given the prompt "The cat sat on the", the model might assign:
+                        <br>• "mat" - 35% probability
+                        <br>• "floor" - 25% probability
+                        <br>• "chair" - 15% probability
+                        <br>• "table" - 10% probability
+                        <br>• Other tokens - remaining 15%
+                    </p>
+                    <p>
+                        The decoding strategy determines how we select the next token from this distribution. 
+                        This selection process is repeated iteratively, with each new token being appended to the 
+                        sequence and fed back into the model to predict the next token.
+                    </p>
+
+                    <div class="content-image">
+                        <span class="placeholder-text">Token Prediction Visualization</span>
+                    </div>
+                    <p class="image-caption">Figure 2: Illustration of probability distribution over vocabulary for next token prediction</p>
+
+                    <h3 id="decoder-transformer">The Role of the Decoder Transformer</h3>
+                    <p>
+                        Modern LLMs are built on the decoder-only transformer architecture, pioneered by GPT models. 
+                        Unlike encoder-decoder models (like the original Transformer or T5), decoder-only architectures 
+                        are specifically optimized for autoregressive text generation.<a href="#ref-3" class="reference-link">[3]</a>
+                    </p>
+                    <p>
+                        The decoder transformer processes the input sequence through multiple layers of self-attention 
+                        and feed-forward networks. Each layer refines the representation, capturing increasingly 
+                        complex patterns and relationships. The final layer outputs a vector of logits (raw scores) 
+                        for each position in the vocabulary.
+                    </p>
+                    <p>
+                        Key characteristics of decoder transformers:
+                        <br>• <strong>Causal masking:</strong> Tokens can only attend to previous tokens, not future ones
+                        <br>• <strong>Autoregressive:</strong> Each prediction depends on all previous predictions
+                        <br>• <strong>Parallel training:</strong> Despite sequential generation, training can be parallelized
+                        <br>• <strong>Positional encoding:</strong> Position information is crucial for understanding sequence order
+                    </p>
+
+                    <h3 id="logits-to-probabilities">From Logits to Probabilities (Softmax)</h3>
+                    <p>
+                        The raw output of the transformer's final layer consists of logits—unnormalized scores for 
+                        each token in the vocabulary. These logits must be converted into a proper probability 
+                        distribution using the softmax function:
+                    </p>
+                    <p>
+                        <code>P(token_i) = exp(logit_i) / Σ exp(logit_j)</code>
+                    </p>
+                    <p>
+                        The softmax function ensures that:
+                        <br>• All probabilities are between 0 and 1
+                        <br>• The sum of all probabilities equals 1
+                        <br>• Higher logits result in higher probabilities
+                    </p>
+                    <p>
+                        This probability distribution is what we manipulate with temperature scaling and other 
+                        techniques before sampling. Understanding this conversion is crucial because many decoding 
+                        parameters (like temperature) are applied before the softmax, directly affecting the shape 
+                        of the final distribution.
+                    </p>
+                </section>
+
+                <section id="decoding-strategies">
+                    <h2>Decoding Strategies: Deterministic vs Sampling</h2>
+                    <p>
+                        Once we have a probability distribution, we need to decide how to select the next token. 
+                        This decision fundamentally determines whether our outputs are consistent and predictable 
+                        or creative and varied.<a href="#ref-4" class="reference-link">[4]</a>
+                    </p>
+
+                    <h3 id="deterministic-methods">Deterministic Methods (Minimize Randomness)</h3>
+                    <p>
+                        Deterministic methods aim to produce consistent, reproducible outputs by systematically 
+                        selecting tokens based on their probabilities without randomness. These methods are ideal 
+                        when you need predictable results or want to minimize variability.
+                    </p>
+
+                    <h4 id="greedy-decoding">Greedy Decoding</h4>
+                    <p>
+                        Greedy decoding is the simplest strategy: always pick the token with the highest probability. 
+                        If "mat" has a 35% probability and is the most likely token, greedy decoding will always 
+                        choose "mat"—no exceptions, no randomness.
+                    </p>
+                    <p>
+                        <strong>Advantages:</strong>
+                        <br>• Completely deterministic (given the same prompt, always produces the same output)
+                        <br>• Fast and computationally efficient
+                        <br>• Only affected by minor computational variability (floating-point precision)
+                        <br>• Most consistent results across runs
+                    </p>
+                    <p>
+                        <strong>Disadvantages:</strong>
+                        <br>• Can produce repetitive or boring text
+                        <br>• May get stuck in loops (e.g., "very very very...")
+                        <br>• Doesn't explore alternative high-probability paths
+                        <br>• Not suitable for creative tasks
+                    </p>
+                    <p>
+                        <strong>Best for:</strong> Factual question answering, translation, summarization, tasks 
+                        requiring consistency
+                    </p>
+
+                    <div class="content-image">
+                        <span class="placeholder-text">Greedy Decoding Diagram</span>
+                    </div>
+                    <p class="image-caption">Figure 3: Greedy decoding always selects the highest probability token at each step</p>
+
+                    <h4 id="beam-search">Beam Search</h4>
+                    <p>
+                        Beam search addresses some limitations of greedy decoding by exploring multiple candidate 
+                        sequences simultaneously. Instead of committing to a single token at each step, it maintains 
+                        a "beam" of the top k most promising sequences.
+                    </p>
+                    <p>
+                        For example, with beam width = 3, the algorithm:
+                        <br>1. Generates top 3 candidates for the first token
+                        <br>2. For each candidate, generates top 3 next tokens (9 total sequences)
+                        <br>3. Keeps only the 3 sequences with highest cumulative probability
+                        <br>4. Repeats until completion
+                    </p>
+                    <p>
+                        <strong>Advantages:</strong>
+                        <br>• Finds higher-probability sequences than greedy search
+                        <br>• Can be deterministic (if implemented without randomness)
+                        <br>• Better quality for many tasks, especially translation
+                        <br>• Balances exploration and exploitation
+                    </p>
+                    <p>
+                        <strong>Disadvantages:</strong>
+                        <br>• More computationally expensive (k times more work)
+                        <br>• Can still produce generic, safe outputs
+                        <br>• May favor shorter sequences (requires length normalization)
+                        <br>• Not ideal for creative or open-ended generation
+                    </p>
+                    <p>
+                        <strong>Best for:</strong> Machine translation, summarization, structured output generation
+                    </p>
+
+                    <h3 id="sampling-methods">Sampling Methods (Intentional Randomness)</h3>
+                    <p>
+                        Unlike deterministic methods, sampling methods introduce controlled randomness to generate 
+                        more diverse and creative outputs. The key is managing this randomness effectively.
+                    </p>
+
+                    <h4 id="why-sampling">Why Use Sampling?</h4>
+                    <p>
+                        Sampling methods embrace randomness as a feature, not a bug. There's a fundamental trade-off 
+                        between creativity and consistency:<a href="#ref-5" class="reference-link">[5]</a>
+                    </p>
+                    <p>
+                        <strong>Creativity:</strong> Sampling allows the model to explore diverse paths, producing 
+                        varied and interesting outputs. The same prompt can yield different results, which is 
+                        essential for creative writing, brainstorming, and conversational AI.
+                    </p>
+                    <p>
+                        <strong>Consistency:</strong> Deterministic methods ensure reproducible results, which is 
+                        critical for tasks where reliability matters more than novelty.
+                    </p>
+                    <p>
+                        The art of using LLMs effectively lies in understanding when to favor which end of this spectrum.
+                    </p>
+
+                    <h4 id="temperature">Temperature Scaling (Modifying the Distribution)</h4>
+                    <p>
+                        Temperature is perhaps the most important parameter in sampling-based generation. It controls 
+                        the randomness by reshaping the probability distribution <em>before</em> sampling occurs.
+                    </p>
+                    <p>
+                        The temperature-adjusted probability is calculated by dividing logits by temperature T 
+                        before applying softmax:
+                        <br><code>P(token_i) = exp(logit_i / T) / Σ exp(logit_j / T)</code>
+                    </p>
+                    <p>
+                        <strong>Low Temperature (0.1 - 0.7):</strong> Sharpens the distribution
+                        <br>• Makes high-probability tokens even more likely
+                        <br>• Reduces randomness, more focused and deterministic
+                        <br>• Good for factual tasks, code generation, structured output
+                        <br>• As T approaches 0, behaves like greedy decoding
+                    </p>
+                    <p>
+                        <strong>High Temperature (0.8 - 2.0):</strong> Flattens the distribution
+                        <br>• Gives lower-probability tokens more chance
+                        <br>• Increases randomness and creativity
+                        <br>• Good for creative writing, brainstorming, diverse outputs
+                        <br>• As T approaches infinity, approaches uniform distribution (all tokens equally likely)
+                    </p>
+                    <p>
+                        <strong>Temperature = 1.0:</strong> No modification, uses raw probability distribution
+                    </p>
+
+                    <div class="content-image">
+                        <span class="placeholder-text">Temperature Effect Visualization</span>
+                    </div>
+                    <p class="image-caption">Figure 4: How temperature reshapes probability distributions from sharp (low T) to flat (high T)</p>
+
+                    <h4 id="top-k-sampling">Top-k Sampling (Filtering the Distribution)</h4>
+                    <p>
+                        Top-k sampling filters the probability distribution by keeping only the top k most likely 
+                        tokens and redistributing their probabilities. All other tokens are given zero probability.
+                    </p>
+                    <p>
+                        For example, with k=5 and the distribution:
+                        <br>• "mat" (35%), "floor" (25%), "chair" (15%), "table" (10%), "bed" (8%), ... rest
+                        <br>• Only the top 5 are kept
+                        <br>• Their probabilities are renormalized to sum to 100%
+                        <br>• Sample randomly from these 5 options
+                    </p>
+                    <p>
+                        <strong>Advantages:</strong>
+                        <br>• Removes unlikely or nonsensical tokens
+                        <br>• Simple and intuitive parameter (k)
+                        <br>• Prevents sampling of very low-probability tokens
+                        <br>• Fixed computational cost
+                    </p>
+                    <p>
+                        <strong>Disadvantages:</strong>
+                        <br>• Fixed k may be too large or too small depending on context
+                        <br>• When probabilities are very peaked, k=50 may include many irrelevant tokens
+                        <br>• When probabilities are flat, k=50 may exclude reasonable options
+                        <br>• Doesn't adapt to distribution shape
+                    </p>
+                    <p>
+                        <strong>Typical values:</strong> k = 10-50 for general use, k = 5-10 for more focused output
+                    </p>
+
+                    <h4 id="top-p-sampling">Top-p (Nucleus) Sampling</h4>
+                    <p>
+                        Top-p sampling (also called nucleus sampling) addresses the main limitation of top-k by 
+                        using an adaptive cutoff. Instead of keeping a fixed number of tokens, it keeps the smallest 
+                        set of tokens whose cumulative probability exceeds a threshold p.<a href="#ref-6" class="reference-link">[6]</a>
+                    </p>
+                    <p>
+                        For example, with p=0.9:
+                        <br>• "mat" (35%) → cumulative: 35%
+                        <br>• "floor" (25%) → cumulative: 60%
+                        <br>• "chair" (15%) → cumulative: 75%
+                        <br>• "table" (10%) → cumulative: 85%
+                        <br>• "bed" (8%) → cumulative: 93% ✓ Stop here (exceeded 90%)
+                        <br>• Sample from {"mat", "floor", "chair", "table", "bed"}
+                    </p>
+                    <p>
+                        <strong>Advantages:</strong>
+                        <br>• Adapts to distribution shape automatically
+                        <br>• Few tokens when probability is peaked (high certainty)
+                        <br>• More tokens when probability is flat (high uncertainty)
+                        <br>• More natural and contextually appropriate than top-k
+                        <br>• Generally produces better quality text
+                    </p>
+                    <p>
+                        <strong>Disadvantages:</strong>
+                        <br>• Slightly more complex to understand
+                        <br>• Variable computational cost
+                        <br>• May still include some odd tokens in very flat distributions
+                    </p>
+                    <p>
+                        <strong>Typical values:</strong> p = 0.9-0.95 for general use, p = 0.95-1.0 for creative tasks
+                    </p>
+
+                    <h3 id="combining-strategies">How These Combine in Practice</h3>
+                    <p>
+                        In practice, sampling techniques are often combined to leverage their complementary strengths. 
+                        A typical generation pipeline might look like:
+                    </p>
+                    <p>
+                        1. <strong>Apply temperature</strong> to adjust randomness level
+                        <br>2. <strong>Apply top-k or top-p filtering</strong> to remove unlikely tokens
+                        <br>3. <strong>Sample from the filtered distribution</strong>
+                    </p>
+                    <p>
+                        Common combinations:
+                        <br>• <code>temperature=0.7, top_p=0.9</code> - Balanced, good for most applications
+                        <br>• <code>temperature=0.3, top_p=0.95</code> - Conservative, factual tasks
+                        <br>• <code>temperature=1.0, top_k=50</code> - Creative, diverse outputs
+                        <br>• <code>temperature=0.9, top_p=0.92</code> - Creative writing, dialogue
+                    </p>
+                    <p>
+                        Many APIs (OpenAI, Anthropic, etc.) allow setting both temperature and top_p simultaneously. 
+                        When both are specified, temperature is typically applied first to reshape the distribution, 
+                        then top-p filters the adjusted distribution.
+                    </p>
+                </section>
+
+                <section id="implementation">
+                    <h2>Implementation Guide</h2>
+                    <p>
+                        Understanding the theory is one thing, but applying these techniques effectively requires 
+                        practical knowledge of when and how to use each method.
+                    </p>
+
+                    <h3 id="when-to-use">When to Use Which Method</h3>
+                    <p>
+                        <strong>Use Greedy Decoding / Low Temperature when:</strong>
+                        <br>• You need consistent, reproducible outputs
+                        <br>• The task is factual (Q&A, data extraction, classification)
+                        <br>• You're generating code or structured data
+                        <br>• You want the "most likely" answer
+                        <br>• Creativity is not important
+                    </p>
+                    <p>
+                        <strong>Use Beam Search when:</strong>
+                        <br>• You need high-quality translation
+                        <br>• You're generating summaries
+                        <br>• You want to find globally optimal sequences
+                        <br>• Computational cost is acceptable
+                        <br>• You can afford slightly longer processing time
+                    </p>
+                    <p>
+                        <strong>Use Temperature Sampling when:</strong>
+                        <br>• You want creative, diverse outputs
+                        <br>• You're building conversational agents
+                        <br>• You're generating creative content (stories, dialogue)
+                        <br>• You want to avoid repetitive responses
+                        <br>• The task benefits from variety
+                    </p>
+                    <p>
+                        <strong>Use Top-p (Nucleus) Sampling when:</strong>
+                        <br>• You want adaptive filtering
+                        <br>• You're doing general-purpose text generation
+                        <br>• You want to balance quality and diversity
+                        <br>• You're unsure of the right top-k value
+                        <br>• You need context-aware token selection
+                    </p>
+
+                    <h3 id="parameter-settings">Setting Parameters for Different Use Cases</h3>
+                    <p>
+                        Here are recommended starting points for common scenarios:
+                    </p>
+                    <p>
+                        <strong>Factual Q&A / Information Extraction:</strong>
+                        <br>• Temperature: 0.0-0.3
+                        <br>• Top-p: 1.0 (disabled) or greedy decoding
+                        <br>• Goal: Maximum consistency and accuracy
+                    </p>
+                    <p>
+                        <strong>Code Generation:</strong>
+                        <br>• Temperature: 0.0-0.2
+                        <br>• Top-p: 0.95
+                        <br>• Goal: Correct, deterministic code
+                    </p>
+                    <p>
+                        <strong>General Chatbot / Assistant:</strong>
+                        <br>• Temperature: 0.7-0.8
+                        <br>• Top-p: 0.9-0.95
+                        <br>• Goal: Natural, helpful, slightly varied responses
+                    </p>
+                    <p>
+                        <strong>Creative Writing / Storytelling:</strong>
+                        <br>• Temperature: 0.8-1.1
+                        <br>• Top-p: 0.9-0.95
+                        <br>• Goal: Imaginative, diverse narratives
+                    </p>
+                    <p>
+                        <strong>Brainstorming / Idea Generation:</strong>
+                        <br>• Temperature: 0.9-1.3
+                        <br>• Top-p: 0.95-1.0
+                        <br>• Goal: Maximum diversity and unexpected ideas
+                    </p>
+                    <p>
+                        <strong>Translation:</strong>
+                        <br>• Beam search with width 4-5
+                        <br>• Or temperature: 0.3, top-p: 0.95
+                        <br>• Goal: Accurate, fluent translation
+                    </p>
+
+                    <div class="content-image">
+                        <span class="placeholder-text">Parameter Settings Comparison Chart</span>
+                    </div>
+                    <p class="image-caption">Figure 5: Visual guide to parameter settings across different use cases</p>
+
+                    <h3 id="api-options">Understanding API Options</h3>
+                    <p>
+                        Different LLM providers expose these parameters with varying names and defaults. Here's how 
+                        to configure them in popular APIs:
+                    </p>
+                    <p>
+                        <strong>OpenAI API:</strong>
+                        <br>• <code>temperature</code> (0-2, default 1)
+                        <br>• <code>top_p</code> (0-1, default 1)
+                        <br>• <code>n</code> (number of completions)
+                        <br>• <code>best_of</code> (generates n completions, returns best)
+                        <br>• Note: Setting both temperature and top_p is not recommended by OpenAI
+                    </p>
+                    <p>
+                        <strong>Anthropic Claude API:</strong>
+                        <br>• <code>temperature</code> (0-1, default 1)
+                        <br>• <code>top_p</code> (0-1)
+                        <br>• <code>top_k</code> (integer)
+                        <br>• Can combine temperature with top_p and top_k
+                    </p>
+                    <p>
+                        <strong>Hugging Face Transformers:</strong>
+                        <br>• <code>do_sample</code> (bool, enables sampling)
+                        <br>• <code>temperature</code> (float)
+                        <br>• <code>top_k</code> (int)
+                        <br>• <code>top_p</code> (float)
+                        <br>• <code>num_beams</code> (int, for beam search)
+                        <br>• <code>num_return_sequences</code> (int)
+                    </p>
+                    <p>
+                        <strong>Tips:</strong>
+                        <br>• Start with recommended defaults and iterate
+                        <br>• Test your parameters with diverse prompts
+                        <br>• Monitor output quality metrics relevant to your task
+                        <br>• Consider A/B testing different parameter combinations
+                        <br>• Document your parameter choices for reproducibility
+                    </p>
+                </section>
+
+                <section id="resources">
+                    <h2>Recommended Resources for Further Learning</h2>
+                    <p>
+                        Deepen your understanding and explore related topics with these curated resources.
+                    </p>
+
+                    <h3 id="deep-dive-resources">Deep Dive on This Topic</h3>
+                    <p>
+                        <strong>Papers:</strong>
+                        <br>• Holtzman et al. (2020) - "The Curious Case of Neural Text Degeneration" - Original nucleus sampling paper
+                        <br>• Fan et al. (2018) - "Hierarchical Neural Story Generation" - Early work on sampling strategies
+                        <br>• Meister et al. (2022) - "Typical Decoding for Natural Language Generation" - Advanced decoding methods
+                    </p>
+                    <p>
+                        <strong>Articles & Tutorials:</strong>
+                        <br>• Hugging Face: "How to generate text: using different decoding methods"
+                        <br>• Jay Alammar: "The Illustrated GPT-2" - Visual guide to transformer decoding
+                        <br>• OpenAI Cookbook: "Techniques to improve reliability" - Practical parameter tuning
+                    </p>
+                    <p>
+                        <strong>Interactive Tools:</strong>
+                        <br>• Hugging Face Inference API playground - Experiment with parameters
+                        <br>• OpenAI Playground - Test different settings interactively
+                        <br>• LangChain documentation - Implementation examples
+                    </p>
+
+                    <h3 id="related-topics">Related Topics to Explore</h3>
+                    <p>
+                        <strong>Foundational Concepts:</strong>
+                        <br>• [Transformer Architecture](content2.html) - Deep dive into attention mechanisms
+                        <br>• [Tokenization](content3.html) - How text becomes tokens
+                        <br>• [Training Objectives](content4.html) - How LLMs learn during pre-training
+                    </p>
+                    <p>
+                        <strong>Advanced Techniques:</strong>
+                        <br>• [Prompt Engineering](content5.html) - Crafting effective prompts
+                        <br>• [Fine-tuning Methods](content6.html) - Adapting models to specific tasks
+                        <br>• [RLHF & Alignment](content7.html) - How models learn human preferences
+                    </p>
+                    <p>
+                        <strong>Practical Applications:</strong>
+                        <br>• [RAG Systems](content8.html) - Retrieval-augmented generation
+                        <br>• [Agent Frameworks](content9.html) - Building autonomous AI agents
+                        <br>• [Production Deployment](content10.html) - Scaling LLMs in production
+                    </p>
+                </section>
+
+                <section id="references" class="references">
+                    <h2>References</h2>
+                    <ol class="reference-list">
+                        <li id="ref-1" class="reference-item">
+                            Vaswani, A., et al. (2017). "Attention Is All You Need". Advances in Neural Information Processing Systems.
+                            <a href="https://arxiv.org/abs/1706.03762" target="_blank">https://arxiv.org/abs/1706.03762</a>
+                        </li>
+                        <li id="ref-2" class="reference-item">
+                            Radford, A., et al. (2019). "Language Models are Unsupervised Multitask Learners". OpenAI Blog.
+                            <a href="https://openai.com/research/better-language-models" target="_blank">https://openai.com/research/better-language-models</a>
+                        </li>
+                        <li id="ref-3" class="reference-item">
+                            Brown, T., et al. (2020). "Language Models are Few-Shot Learners". NeurIPS.
+                            <a href="https://arxiv.org/abs/2005.14165" target="_blank">https://arxiv.org/abs/2005.14165</a>
+                        </li>
+                        <li id="ref-4" class="reference-item">
+                            Vijayakumar, A., et al. (2018). "Diverse Beam Search for Improved Description of Complex Scenes". AAAI.
+                            <a href="https://arxiv.org/abs/1610.02424" target="_blank">https://arxiv.org/abs/1610.02424</a>
+                        </li>
+                        <li id="ref-5" class="reference-item">
+                            Welleck, S., et al. (2020). "Neural Text Generation with Unlikelihood Training". ICLR.
+                            <a href="https://arxiv.org/abs/1908.04319" target="_blank">https://arxiv.org/abs/1908.04319</a>
+                        </li>
+                        <li id="ref-6" class="reference-item">
+                            Holtzman, A., et al. (2020). "The Curious Case of Neural Text Degeneration". ICLR.
+                            <a href="https://arxiv.org/abs/1904.09751" target="_blank">https://arxiv.org/abs/1904.09751</a>
+                        </li>
+                    </ol>
+                </section>
+
+                <!-- Footer -->
+                <footer class="footer">
+                    <p><strong>Last Updated:</strong> February 15, 2026</p>
+                    <p>© 2026 <a href="https://github.com/Radchaneeporn-Lab" target="_blank">Radchaneeporn-Lab</a>. All rights reserved.</p>
+                </footer>
+            </article>
+        </main>
+
+        <!-- Right Sidebar Navigation -->
+        <aside class="right-sidebar">
+            <h3>On This Page</h3>
+            <nav>
+                <ul class="sub-nav-list" id="sub-nav-container">
+                    <!-- Will be populated by JavaScript based on active section -->
+                </ul>
+            </nav>
+        </aside>
+    </div>
+
+    <script>
+        // Navigation data structure mapping sections to their subsections
+        const navigationMap = {
+            'introduction': [],
+            'foundation': [
+                { id: 'next-token-prediction', title: 'Next Token Prediction', children: [] },
+                { id: 'decoder-transformer', title: 'The Decoder Transformer', children: [] },
+                { id: 'logits-to-probabilities', title: 'From Logits to Probabilities', children: [] }
+            ],
+            'decoding-strategies': [
+                { id: 'deterministic-methods', title: 'Deterministic Methods', children: [
+                    { id: 'greedy-decoding', title: 'Greedy Decoding' },
+                    { id: 'beam-search', title: 'Beam Search' }
+                ]},
+                { id: 'sampling-methods', title: 'Sampling Methods', children: [
+                    { id: 'why-sampling', title: 'Why Use Sampling?' },
+                    { id: 'temperature', title: 'Temperature Scaling' },
+                    { id: 'top-k-sampling', title: 'Top-k Sampling' },
+                    { id: 'top-p-sampling', title: 'Top-p (Nucleus) Sampling' }
+                ]},
+                { id: 'combining-strategies', title: 'Combining Strategies in Practice', children: [] }
+            ],
+            'implementation': [
+                { id: 'when-to-use', title: 'When to Use Which Method', children: [] },
+                { id: 'parameter-settings', title: 'Parameter Settings', children: [] },
+                { id: 'api-options', title: 'Understanding API Options', children: [] }
+            ],
+            'resources': [
+                { id: 'deep-dive-resources', title: 'Deep Dive on This Topic', children: [] },
+                { id: 'related-topics', title: 'Related Topics', children: [] }
+            ],
+            'references': []
+        };
+
+        // Function to update right sidebar based on active section
+        function updateRightSidebar(sectionId) {
+            const subNavContainer = document.getElementById('sub-nav-container');
+            const subsections = navigationMap[sectionId];
+            
+            if (!subsections || subsections.length === 0) {
+                subNavContainer.innerHTML = '<li class="sub-nav-item"><span class="sub-nav-link" style="color: #555; cursor: default;">No subsections</span></li>';
+                return;
+            }
+
+            let html = '';
+            subsections.forEach(subsection => {
+                html += `
+                    <li class="sub-nav-item">
+                        <a href="#${subsection.id}" class="sub-nav-link" data-section="${subsection.id}">${subsection.title}</a>
+                        ${subsection.children && subsection.children.length > 0 ? `
+                            <ul class="sub-nav-nested">
+                                ${subsection.children.map(child => `
+                                    <li class="sub-nav-item">
+                                        <a href="#${child.id}" class="sub-nav-link" data-section="${child.id}">${child.title}</a>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        ` : ''}
+                    </li>
+                `;
+            });
+
+            subNavContainer.innerHTML = html;
+
+            // Add click handlers for smooth scrolling
+            document.querySelectorAll('.right-sidebar .sub-nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+        }
+
+        // Intersection Observer for main sections (left nav)
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('.sidebar .nav-link');
+
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -35% 0px',
+            threshold: 0
+        };
+
+        let currentMainSection = 'introduction';
+
+        const mainObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.getAttribute('id');
+                    currentMainSection = id;
+                    
+                    // Update left sidebar
+                    navLinks.forEach(link => link.classList.remove('active'));
+                    const activeLink = document.querySelector(`.sidebar .nav-link[href="#${id}"]`);
+                    if (activeLink) {
+                        activeLink.classList.add('active');
+                    }
+
+                    // Update right sidebar content
+                    updateRightSidebar(id);
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => mainObserver.observe(section));
+
+        // Intersection Observer for subsections (right nav)
+        const subsectionObserverOptions = {
+            root: null,
+            rootMargin: '-15% 0px -40% 0px',
+            threshold: 0
+        };
+
+        function observeSubsections() {
+            // Get all h3 and h4 elements
+            const subsectionElements = document.querySelectorAll('h3[id], h4[id]');
+            
+            const subsectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.getAttribute('id');
+                        
+                        // Update right sidebar active state
+                        document.querySelectorAll('.right-sidebar .sub-nav-link').forEach(link => {
+                            link.classList.remove('active');
+                        });
+                        
+                        const activeSubLink = document.querySelector(`.right-sidebar .sub-nav-link[data-section="${id}"]`);
+                        if (activeSubLink) {
+                            activeSubLink.classList.add('active');
+                        }
+                    }
+                });
+            }, subsectionObserverOptions);
+
+            subsectionElements.forEach(el => subsectionObserver.observe(el));
+        }
+
+        // Initialize right sidebar with first section
+        updateRightSidebar('introduction');
+        
+        // Observe subsections after a short delay to ensure DOM is ready
+        setTimeout(observeSubsections, 100);
+
+        // Smooth scroll for left sidebar links
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                
+                if (targetSection) {
+                    targetSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Smooth scroll for table of contents links
+        document.querySelectorAll('.toc-link, .toc-nested-link, .toc-nested-deep-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                
+                if (targetSection) {
+                    targetSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Re-observe subsections when main section changes
+        const observer = new MutationObserver(() => {
+            observeSubsections();
+        });
+
+        observer.observe(document.getElementById('sub-nav-container'), {
+            childList: true,
+            subtree: true
+        });
+    </script>
+</body>
+</html>

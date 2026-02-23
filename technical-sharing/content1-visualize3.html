@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Output Pipeline</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Fraunces:ital,wght@0,300;0,700;0,900;1,300&display=swap');
+
+  :root {
+    --bg: #06080f;
+    --panel: #0c0f1a;
+    --panel2: #111527;
+    --border: #1a2035;
+    --border2: #232b45;
+    --c1: #e85d3a;   /* linear projection - warm red-orange */
+    --c2: #3a9be8;   /* softmax - cool blue */
+    --c3: #3ae87a;   /* sampling - green */
+    --text: #d4dae8;
+    --muted: #3d4f6e;
+    --bright: #eef2ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    padding: 36px 20px 60px;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(232,93,58,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(58,155,232,0.06) 0%, transparent 60%);
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: var(--bright);
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+
+  .header p {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* Run button */
+  .run-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+  }
+
+  .run-btn {
+    background: none;
+    border: 1.5px solid var(--border2);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    padding: 12px 36px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .run-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(232,93,58,0.1), rgba(58,155,232,0.1), rgba(58,232,122,0.1));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .run-btn:hover { border-color: var(--text); }
+  .run-btn:hover::before { opacity: 1; }
+  .run-btn:active { transform: scale(0.98); }
+
+  /* Pipeline container */
+  .pipeline {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Stage */
+  .stage {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 0;
+    opacity: 0.3;
+    transition: opacity 0.4s;
+  }
+
+  .stage.active { opacity: 1; }
+
+  /* Stage label column */
+  .stage-label {
+    padding: 28px 24px 28px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    border-right: 2px solid var(--border);
+    position: relative;
+  }
+
+  .stage-label::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    transition: all 0.4s;
+  }
+
+  .stage.active .stage-label::after {
+    border-color: var(--stage-color);
+    background: var(--stage-color);
+    box-shadow: 0 0 12px var(--stage-color);
+  }
+
+  .stage-num {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+
+  .stage-name {
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--bright);
+    text-align: right;
+    line-height: 1.2;
+  }
+
+  .stage.active .stage-name { color: var(--stage-color); }
+
+  .stage-tag {
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-top: 4px;
+    text-align: right;
+  }
+
+  /* Stage content column */
+  .stage-content {
+    padding: 28px 0 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Arrow connector between stages */
+  .connector {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+  }
+
+  .connector-line {
+    border-right: 2px solid var(--border);
+  }
+
+  .connector-arrow {
+    padding: 6px 0 6px 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .arrow-line {
+    height: 1px;
+    width: 40px;
+    background: var(--border2);
+  }
+
+  .arrow-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  /* ── STAGE 1: Linear Projection ── */
+
+  .hidden-state {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .hs-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .hs-vec {
+    display: flex;
+    gap: 2px;
+  }
+
+  .hs-cell {
+    width: 14px;
+    height: 28px;
+    border-radius: 3px;
+    background: rgba(232,93,58,0.15);
+    border: 1px solid rgba(232,93,58,0.3);
+    transition: all 0.6s;
+    position: relative;
+  }
+
+  .hs-cell.lit {
+    background: rgba(232,93,58,0.5);
+    border-color: #e85d3a;
+    box-shadow: 0 0 8px rgba(232,93,58,0.4);
+  }
+
+  .logit-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .logit-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logit-token {
+    font-size: 0.7rem;
+    color: var(--muted);
+    width: 52px;
+    text-align: right;
+  }
+
+  .logit-track {
+    width: 200px;
+    height: 18px;
+    background: var(--panel2);
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .logit-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, rgba(232,93,58,0.4), rgba(232,93,58,0.9));
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+
+  .logit-val {
+    font-size: 0.65rem;
+    color: #e85d3a;
+    width: 36px;
+  }
+
+  /* ── STAGE 2: Softmax ── */
+
+  .temp-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: fit-content;
+  }
+
+  .temp-row label { font-size: 0.65rem; color: var(--muted); }
+
+  .temp-row input[type=range] {
+    width: 120px;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border2);
+    outline: none;
+  }
+
+  .temp-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #3a9be8;
+    cursor: pointer;
+  }
+
+  .temp-display {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #3a9be8;
+    width: 32px;
+  }
+
+  .prob-bars2 {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .prob-row2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .prob-token2 {
+    font-size: 0.7rem;
+    color: var(--muted);
+    width: 52px;
+    text-align: right;
+  }
+
+  .prob-track2 {
+    width: 200px;
+    height: 18px;
+    background: var(--panel2);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .prob-fill2 {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, rgba(58,155,232,0.4), rgba(58,155,232,0.9));
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+
+  .prob-val2 {
+    font-size: 0.65rem;
+    color: #3a9be8;
+    width: 40px;
+  }
+
+  /* ── STAGE 3: Sampling ── */
+
+  .mode-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .mode-tab {
+    padding: 5px 12px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .mode-tab.active {
+    background: rgba(58,232,122,0.1);
+    border-color: #3ae87a;
+    color: #3ae87a;
+  }
+
+  .lottery-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .lottery-bar2 {
+    height: 36px;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    border: 1px solid var(--border);
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .lot-seg {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    transition: all 0.6s cubic-bezier(0.4,0,0.2,1);
+    border-right: 1.5px solid var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .lot-seg.dimmed { opacity: 0.15; filter: grayscale(0.6); }
+  .lot-seg.winner { box-shadow: inset 0 0 20px rgba(255,255,255,0.25); }
+
+  .lot-seg.winner::after {
+    content: '▲';
+    position: absolute;
+    bottom: 2px;
+    font-size: 0.5rem;
+    animation: blink 0.5s ease 3;
+  }
+
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .lot-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .lot-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    font-size: 0.65rem;
+    transition: all 0.3s;
+  }
+
+  .lot-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+
+  /* Result */
+  .result-strip {
+    max-width: 960px;
+    margin: 32px auto 0;
+    padding: 20px 32px;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+
+  .result-strip.visible { opacity: 1; }
+
+  .result-label2 {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .result-token2 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #3ae87a;
+    transition: color 0.3s;
+  }
+
+  .result-meta {
+    font-size: 0.7rem;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  .result-meta span { color: var(--text); }
+
+  /* History tokens */
+  .history-wrap {
+    max-width: 960px;
+    margin: 16px auto 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 28px;
+  }
+
+  .hist-tok {
+    font-family: 'Fraunces', serif;
+    font-size: 0.85rem;
+    padding: 3px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .clear-hist {
+    font-size: 0.6rem;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: 'IBM Plex Mono', monospace;
+    transition: color 0.2s;
+  }
+  .clear-hist:hover { color: var(--text); }
+
+  /* Dim note */
+  .dim-note {
+    font-size: 0.65rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 4px;
+  }
+
+  /* K control */
+  .k-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+  .k-control input[type=range] {
+    width: 80px;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    outline: none;
+  }
+  .k-control input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: #3ae87a;
+    cursor: pointer;
+  }
+  .k-val { color: #3ae87a; font-weight: 700; font-size: 0.75rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>From Hidden State to Next Token</h1>
+  <p>Linear Projection &nbsp;→&nbsp; Softmax &nbsp;→&nbsp; Sampling</p>
+</div>
+
+<div class="run-wrap">
+  <button class="run-btn" onclick="runPipeline()">▶ &nbsp; RUN PIPELINE</button>
+</div>
+
+<div class="pipeline">
+
+  <!-- ── STAGE 1 ── -->
+  <div class="stage" id="s1" style="--stage-color:#e85d3a">
+    <div class="stage-label">
+      <div class="stage-num">STEP 01</div>
+      <div class="stage-name">Linear<br>Projection</div>
+      <div class="stage-tag">deterministic</div>
+    </div>
+    <div class="stage-content">
+
+      <!-- Hidden state -->
+      <div class="hidden-state">
+        <span class="hs-label">last hidden state [768]</span>
+        <div class="hs-vec" id="hsVec"></div>
+        <span class="hs-label" style="margin-left:4px">× W[768×50257]</span>
+      </div>
+
+      <!-- Logit bars -->
+      <div class="logit-bars" id="logitBars"></div>
+      <div class="dim-note">Raw scores over vocabulary — no probabilities yet. Same input always gives same logits.</div>
+    </div>
+  </div>
+
+  <div class="connector">
+    <div class="connector-line"></div>
+    <div class="connector-arrow">
+      <div class="arrow-line"></div>
+      <span class="arrow-label">logits [50257] pass to softmax</span>
+    </div>
+  </div>
+
+  <!-- ── STAGE 2 ── -->
+  <div class="stage" id="s2" style="--stage-color:#3a9be8">
+    <div class="stage-label">
+      <div class="stage-num">STEP 02</div>
+      <div class="stage-name">Softmax</div>
+      <div class="stage-tag">deterministic</div>
+    </div>
+    <div class="stage-content">
+
+      <div class="temp-row">
+        <label>TEMPERATURE</label>
+        <input type="range" id="tempSlider" min="0.1" max="3.0" step="0.1" value="1.0"
+          oninput="onTempChange(this.value)">
+        <span class="temp-display" id="tempDisp">1.0</span>
+      </div>
+
+      <div class="prob-bars2" id="probBars2"></div>
+      <div class="dim-note">Converts logits → probabilities (sum = 1.0). Still deterministic — temperature only shapes the distribution.</div>
+    </div>
+  </div>
+
+  <div class="connector">
+    <div class="connector-line"></div>
+    <div class="connector-arrow">
+      <div class="arrow-line"></div>
+      <span class="arrow-label">probability distribution [50257] enters sampling</span>
+    </div>
+  </div>
+
+  <!-- ── STAGE 3 ── -->
+  <div class="stage" id="s3" style="--stage-color:#3ae87a">
+    <div class="stage-label">
+      <div class="stage-num">STEP 03</div>
+      <div class="stage-name">Sampling</div>
+      <div class="stage-tag">🎲 randomness here</div>
+    </div>
+    <div class="stage-content">
+
+      <div class="mode-tabs">
+        <button class="mode-tab active" onclick="setMode('greedy',this)">Greedy</button>
+        <button class="mode-tab" onclick="setMode('topk',this)">Top-K</button>
+        <button class="mode-tab" onclick="setMode('topp',this)">Top-P</button>
+      </div>
+
+      <div id="kRow" style="display:none" class="k-control">
+        K = <input type="range" id="kSlider" min="1" max="5" step="1" value="2"
+          oninput="topK=+this.value;document.getElementById('kVal').textContent=topK;renderLottery(null)">
+        <span class="k-val" id="kVal">2</span>
+        <span>tokens in pool</span>
+      </div>
+
+      <div class="lottery-wrap">
+        <div class="lottery-bar2" id="lotBar"></div>
+        <div class="lot-legend" id="lotLegend"></div>
+      </div>
+      <div class="dim-note" id="lotNote">Weighted lottery — wider segment = more tickets = higher chance. <strong style="color:#3ae87a">This is the only random step.</strong></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Result -->
+<div class="result-strip" id="resultStrip">
+  <div>
+    <div class="result-label2">next token</div>
+    <div class="result-token2" id="resultTok">—</div>
+  </div>
+  <div class="result-meta" id="resultMeta"></div>
+</div>
+
+<div class="history-wrap" id="histWrap">
+  <button class="clear-hist" onclick="clearHist()">clear</button>
+</div>
+
+<script>
+  const TOKENS = [
+    { name: '"cat"',  logit: 8.0, color: '#e85d3a' },
+    { name: '"dog"',  logit: 6.8, color: '#3a9be8' },
+    { name: '"bird"', logit: 5.2, color: '#c4a83a' },
+    { name: '"car"',  logit: 3.1, color: '#3ae87a' },
+    { name: '"fish"', logit: 1.8, color: '#a83ae8' },
+  ];
+
+  let temperature = 1.0;
+  let samplingMode = 'greedy';
+  let topK = 2;
+  let topP = 0.80;
+  let probs = [];
+  let pipelineRan = false;
+  let history = [];
+
+  // Build hidden state cells
+  const hsVec = document.getElementById('hsVec');
+  for (let i = 0; i < 32; i++) {
+    const c = document.createElement('div');
+    c.className = 'hs-cell';
+    c.id = `hc${i}`;
+    hsVec.appendChild(c);
+  }
+
+  function softmax(logits, temp) {
+    const scaled = logits.map(l => l / temp);
+    const max = Math.max(...scaled);
+    const exps = scaled.map(x => Math.exp(x - max));
+    const sum = exps.reduce((a, b) => a + b, 0);
+    return exps.map(x => x / sum);
+  }
+
+  function computeProbs() {
+    probs = softmax(TOKENS.map(t => t.logit), temperature);
+  }
+
+  function getEligible() {
+    if (samplingMode === 'greedy') return [0];
+    if (samplingMode === 'topk') return TOKENS.map((_, i) => i).slice(0, topK);
+    if (samplingMode === 'topp') {
+      let c = 0; const e = [];
+      for (let i = 0; i < TOKENS.length; i++) {
+        c += probs[i]; e.push(i);
+        if (c >= topP) break;
+      }
+      return e;
+    }
+    return [0];
+  }
+
+  function renderLogits(animate) {
+    const max = Math.max(...TOKENS.map(t => t.logit));
+    document.getElementById('logitBars').innerHTML = TOKENS.map((t, i) => `
+      <div class="logit-row">
+        <span class="logit-token">${t.name}</span>
+        <div class="logit-track">
+          <div class="logit-fill" id="lf${i}" style="width:${animate ? (t.logit/max*100)+'%' : '0%'}"></div>
+        </div>
+        <span class="logit-val">${t.logit.toFixed(1)}</span>
+      </div>`).join('');
+  }
+
+  function renderProbs(animate) {
+    computeProbs();
+    document.getElementById('probBars2').innerHTML = TOKENS.map((t, i) => `
+      <div class="prob-row2">
+        <span class="prob-token2">${t.name}</span>
+        <div class="prob-track2">
+          <div class="prob-fill2" id="pf${i}" style="width:${animate ? (probs[i]*100)+'%' : '0%'}"></div>
+        </div>
+        <span class="prob-val2">${(probs[i]*100).toFixed(1)}%</span>
+      </div>`).join('');
+  }
+
+  function renderLottery(pickedIdx) {
+    const eligible = getEligible();
+    const total = eligible.reduce((s, i) => s + probs[i], 0);
+
+    const bar = document.getElementById('lotBar');
+    bar.innerHTML = TOKENS.map((t, i) => {
+      const isEl = eligible.includes(i);
+      const pct = isEl ? (probs[i] / total * 100) : 0;
+      const isWinner = pickedIdx === i;
+      if (!isEl) return '';
+      return `<div class="lot-seg${isWinner?' winner':''}" style="width:${pct}%;background:${t.color}${isWinner?'':'88'}">
+        ${pct > 12 ? t.name : ''}
+      </div>`;
+    }).join('') + TOKENS.map((t, i) => {
+      const isEl = eligible.includes(i);
+      if (isEl) return '';
+      return `<div class="lot-seg dimmed" style="width:${probs[i]*100/1}%;background:${t.color}44;flex:0 0 ${probs[i]*10}%"></div>`;
+    }).join('');
+
+    // Simpler approach: rebuild cleanly
+    const segs = TOKENS.map((t, i) => {
+      const isEl = eligible.includes(i);
+      const isWinner = pickedIdx === i;
+      const pct = isEl ? (probs[i] / total * 100) : (probs[i] * 8);
+      return `<div class="lot-seg${!isEl?' dimmed':''}${isWinner?' winner':''}"
+        style="flex:${pct};background:${t.color}${isEl?(isWinner?'':'99'):'33'}">
+        ${pct > 10 ? `<span>${t.name}</span>` : ''}
+      </div>`;
+    });
+    bar.innerHTML = segs.join('');
+
+    // Legend
+    document.getElementById('lotLegend').innerHTML = TOKENS.map((t, i) => {
+      const isEl = eligible.includes(i);
+      const isWinner = pickedIdx === i;
+      const tickets = isEl ? Math.round(probs[i] / total * 100) : 0;
+      return `<div class="lot-chip" style="border-color:${isEl?(isWinner?t.color:t.color+'55'):'transparent'};background:${isWinner?t.color+'22':'transparent'}">
+        <div class="lot-dot" style="background:${isEl?t.color:t.color+'33'}"></div>
+        <span style="color:${isEl?t.color+'cc':t.color+'33'}">${t.name} ${isEl?tickets+'t':'0t'}</span>
+        ${isWinner?'<span style="color:'+t.color+'">← picked</span>':''}
+        ${!isEl?'<span style="opacity:0.3">(excluded)</span>':''}
+      </div>`;
+    }).join('');
+
+    // Note
+    const excl = TOKENS.length - eligible.length;
+    const noteEl = document.getElementById('lotNote');
+    if (samplingMode === 'greedy') {
+      noteEl.innerHTML = '<strong style="color:#3ae87a">No lottery</strong> — greedy always picks the top token directly. Zero randomness.';
+    } else {
+      noteEl.innerHTML = `${excl} token${excl!==1?'s':''} excluded (0 tickets). Remaining share tickets by probability weight — <strong style="color:#3ae87a">this weighted draw is the only random step in the entire pipeline.</strong>`;
+    }
+  }
+
+  function onTempChange(val) {
+    temperature = parseFloat(val);
+    document.getElementById('tempDisp').textContent = temperature.toFixed(1);
+    if (pipelineRan) {
+      renderProbs(true);
+      renderLottery(null);
+    }
+  }
+
+  function setMode(m, btn) {
+    samplingMode = m;
+    document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('kRow').style.display = m === 'topk' ? 'flex' : 'none';
+    if (pipelineRan) renderLottery(null);
+  }
+
+  async function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function runPipeline() {
+    pipelineRan = true;
+    document.getElementById('resultStrip').classList.remove('visible');
+
+    // Reset stages
+    ['s1','s2','s3'].forEach(id => document.getElementById(id).classList.remove('active'));
+
+    // ── Stage 1: Linear Projection ──
+    document.getElementById('s1').classList.add('active');
+    renderLogits(false);
+
+    // Animate hidden state
+    for (let i = 0; i < 32; i++) {
+      await delay(18);
+      document.getElementById(`hc${i}`).classList.add('lit');
+    }
+    await delay(100);
+
+    // Animate logit bars
+    renderLogits(true);
+    await delay(900);
+
+    // ── Stage 2: Softmax ──
+    document.getElementById('s2').classList.add('active');
+    renderProbs(false);
+    await delay(100);
+    renderProbs(true);
+    await delay(900);
+
+    // ── Stage 3: Sampling ──
+    document.getElementById('s3').classList.add('active');
+    renderLottery(null);
+    await delay(600);
+
+    // Pick token
+    const eligible = getEligible();
+    let picked;
+    if (samplingMode === 'greedy') {
+      picked = 0;
+    } else {
+      const total = eligible.reduce((s, i) => s + probs[i], 0);
+      let r = Math.random() * total;
+      for (const i of eligible) { r -= probs[i]; if (r <= 0) { picked = i; break; } }
+      if (picked === undefined) picked = eligible[eligible.length - 1];
+    }
+
+    renderLottery(picked);
+    await delay(300);
+
+    // Show result
+    const tok = TOKENS[picked];
+    document.getElementById('resultTok').textContent = tok.name;
+    document.getElementById('resultTok').style.color = tok.color;
+    document.getElementById('resultMeta').innerHTML =
+      `prob: <span>${(probs[picked]*100).toFixed(1)}%</span><br>` +
+      `logit: <span>${tok.logit.toFixed(1)}</span><br>` +
+      `mode: <span>${samplingMode}</span>`;
+    document.getElementById('resultStrip').classList.add('visible');
+
+    // History
+    const hw = document.getElementById('histWrap');
+    const chip = document.createElement('div');
+    chip.className = 'hist-tok';
+    chip.textContent = tok.name;
+    chip.style.borderColor = tok.color + '66';
+    chip.style.color = tok.color;
+    chip.style.background = tok.color + '11';
+    hw.insertBefore(chip, hw.firstChild);
+
+    // Reset hidden state cells for next run
+    for (let i = 0; i < 32; i++) {
+      document.getElementById(`hc${i}`).classList.remove('lit');
+    }
+  }
+
+  function clearHist() {
+    const hw = document.getElementById('histWrap');
+    const chips = hw.querySelectorAll('.hist-tok');
+    chips.forEach(c => c.remove());
+  }
+
+  // Init
+  renderLogits(false);
+  renderProbs(false);
+  renderLottery(null);
+</script>
+</body>
+</html>

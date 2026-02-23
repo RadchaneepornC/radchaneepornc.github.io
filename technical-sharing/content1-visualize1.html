@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temperature & Softmax Visualizer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --border: #1e1e2e;
+    --accent: #7c3aed;
+    --accent2: #06b6d4;
+    --accent3: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    margin-bottom: 40px;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  /* Steps flow */
+  .flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }
+
+  .flow-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    transition: all 0.3s;
+  }
+
+  .flow-step.active {
+    border-color: var(--accent);
+    color: var(--text);
+    box-shadow: 0 0 16px rgba(124,58,237,0.3);
+  }
+
+  .flow-arrow {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  /* Temperature slider */
+  .temp-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+
+  .temp-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .temp-label span:first-child {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .temp-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent2);
+    font-family: 'JetBrains Mono', monospace;
+    transition: color 0.3s;
+  }
+
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+    margin-bottom: 12px;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 12px rgba(124,58,237,0.6);
+    transition: box-shadow 0.2s;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 20px rgba(124,58,237,0.9);
+  }
+
+  .temp-hints {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .temp-desc {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 0.85rem;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.3s;
+  }
+
+  /* Math section */
+  .math-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+  }
+
+  .token-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .token-row {
+    display: grid;
+    grid-template-columns: 70px 80px 30px 80px 30px 80px;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  .token-name {
+    color: var(--accent3);
+    font-weight: 700;
+  }
+
+  .token-logit {
+    color: var(--text);
+    text-align: right;
+  }
+
+  .op {
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .token-scaled {
+    color: var(--accent2);
+    text-align: right;
+    transition: color 0.3s;
+  }
+
+  .token-prob {
+    color: #10b981;
+    text-align: right;
+    font-weight: 700;
+  }
+
+  .col-header {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Bar chart */
+  .chart-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+
+  .bars {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .bar-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent3);
+    width: 50px;
+    font-weight: 700;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 28px;
+    background: var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+  }
+
+  .bar-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+  }
+
+  .bar-fill-0 { background: linear-gradient(90deg, #7c3aed, #a855f7); }
+  .bar-fill-1 { background: linear-gradient(90deg, #0891b2, #06b6d4); }
+  .bar-fill-2 { background: linear-gradient(90deg, #d97706, #f59e0b); }
+  .bar-fill-3 { background: linear-gradient(90deg, #059669, #10b981); }
+
+  /* Sampling note */
+  .sampling-note {
+    background: linear-gradient(135deg, rgba(124,58,237,0.1), rgba(6,182,212,0.1));
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .sampling-note p {
+    font-size: 0.85rem;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .sampling-note strong {
+    color: var(--accent2);
+  }
+
+  .dice {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    display: block;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Temperature & Softmax</h1>
+  <p class="subtitle">logits → ÷ temperature → softmax → probability</p>
+
+  <!-- Flow -->
+  <div class="flow">
+    <div class="flow-step">Logits</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step active">÷ Temperature</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step active">Softmax</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step active">Probabilities</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Sampling 🎲</div>
+  </div>
+
+  <!-- Temperature Slider -->
+  <div class="temp-section">
+    <div class="temp-label">
+      <span>TEMPERATURE</span>
+      <span class="temp-value" id="tempDisplay">1.0</span>
+    </div>
+    <input type="range" id="tempSlider" min="0.1" max="3.0" step="0.1" value="1.0">
+    <div class="temp-hints">
+      <span>0.1 — Sharp / Confident</span>
+      <span>1.0 — Default</span>
+      <span>3.0 — Flat / Random</span>
+    </div>
+    <div class="temp-desc" id="tempDesc"></div>
+  </div>
+
+  <!-- Math visualization -->
+  <div class="math-section">
+    <div class="section-title">Step-by-step calculation</div>
+    <div class="token-rows">
+      <div class="token-row">
+        <span class="col-header">token</span>
+        <span class="col-header" style="text-align:right">logit</span>
+        <span></span>
+        <span class="col-header" style="text-align:right">÷ temp</span>
+        <span></span>
+        <span class="col-header" style="text-align:right">prob %</span>
+      </div>
+      <div id="tokenRows"></div>
+    </div>
+  </div>
+
+  <!-- Bar chart -->
+  <div class="chart-section">
+    <div class="section-title">Probability distribution</div>
+    <div class="bars" id="bars"></div>
+  </div>
+
+  <!-- Sampling note -->
+  <div class="sampling-note">
+    <span class="dice">🎲</span>
+    <p>Everything above is <strong>deterministic</strong> — same temperature always gives same probabilities.<br>
+    The <strong>randomness only happens at Sampling</strong>, where the model "rolls the dice" weighted by these probabilities.</p>
+  </div>
+</div>
+
+<script>
+  const tokens = ['cat', 'dog', 'bird', 'car'];
+  const logits = [8.0, 7.0, 4.0, 2.0];
+  const colors = ['#a855f7', '#06b6d4', '#f59e0b', '#10b981'];
+
+  function softmax(arr) {
+    const max = Math.max(...arr);
+    const exps = arr.map(x => Math.exp(x - max));
+    const sum = exps.reduce((a, b) => a + b, 0);
+    return exps.map(x => x / sum);
+  }
+
+  function update() {
+    const temp = parseFloat(document.getElementById('tempSlider').value);
+    document.getElementById('tempDisplay').textContent = temp.toFixed(1);
+
+    const scaled = logits.map(l => l / temp);
+    const probs = softmax(scaled);
+
+    // Color the temp value
+    const tv = document.getElementById('tempDisplay');
+    if (temp < 0.7) tv.style.color = '#f59e0b';
+    else if (temp > 1.5) tv.style.color = '#a855f7';
+    else tv.style.color = '#06b6d4';
+
+    // Description
+    const desc = document.getElementById('tempDesc');
+    if (temp < 0.7) {
+      desc.textContent = '🔥 Low temperature — gaps between logits are amplified → model is very confident → top token dominates';
+      desc.style.background = 'rgba(245,158,11,0.1)';
+      desc.style.color = '#f59e0b';
+    } else if (temp > 1.5) {
+      desc.textContent = '❄️ High temperature — gaps between logits shrink → distribution becomes flatter → more randomness';
+      desc.style.background = 'rgba(124,58,237,0.1)';
+      desc.style.color = '#a855f7';
+    } else {
+      desc.textContent = '⚖️ Default temperature — balanced distribution';
+      desc.style.background = 'rgba(6,182,212,0.1)';
+      desc.style.color = '#06b6d4';
+    }
+
+    // Token rows
+    const rowsEl = document.getElementById('tokenRows');
+    rowsEl.innerHTML = tokens.map((t, i) => `
+      <div class="token-row">
+        <span class="token-name">"${t}"</span>
+        <span class="token-logit">${logits[i].toFixed(1)}</span>
+        <span class="op">÷${temp.toFixed(1)}</span>
+        <span class="token-scaled">${scaled[i].toFixed(2)}</span>
+        <span class="op">→</span>
+        <span class="token-prob">${(probs[i]*100).toFixed(1)}%</span>
+      </div>
+    `).join('');
+
+    // Bars
+    const barsEl = document.getElementById('bars');
+    barsEl.innerHTML = tokens.map((t, i) => `
+      <div class="bar-row">
+        <span class="bar-label">"${t}"</span>
+        <div class="bar-track">
+          <div class="bar-fill bar-fill-${i}" style="width:${probs[i]*100}%">
+            <span class="bar-pct">${(probs[i]*100).toFixed(1)}%</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('tempSlider').addEventListener('input', update);
+  update();
+</script>
+</body>
+</html>

@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sampling Visualizer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;700;800&family=Inter:wght@400;600;700;800;900&display=swap');
+
+  :root {
+    --bg: #080b12;
+    --surface: #0f1420;
+    --surface2: #161d2e;
+    --border: #1e2a40;
+    --accent: #3b82f6;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --purple: #8b5cf6;
+    --text: #e2e8f0;
+    --muted: #4b5563;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 32px 20px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: 800;
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    margin-bottom: 32px;
+  }
+
+  .container { max-width: 820px; margin: 0 auto; }
+
+  /* Mode tabs */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .tab.active {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .tab.greedy.active { color: var(--green); border-color: var(--green); box-shadow: 0 0 12px rgba(16,185,129,0.2); }
+  .tab.topk.active { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px rgba(59,130,246,0.2); }
+  .tab.topp.active { color: var(--purple); border-color: var(--purple); box-shadow: 0 0 12px rgba(139,92,246,0.2); }
+
+  /* Explanation card */
+  .explain-card {
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    border: 1px solid;
+    transition: all 0.3s;
+  }
+
+  /* Probability bars */
+  .prob-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+
+  .prob-bars { display: flex; flex-direction: column; gap: 10px; }
+
+  .prob-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: opacity 0.3s;
+  }
+
+  .prob-row.dimmed { opacity: 0.2; }
+
+  .prob-token {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    width: 60px;
+    font-weight: 700;
+  }
+
+  .prob-track {
+    flex: 1;
+    height: 32px;
+    background: var(--surface2);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--border);
+  }
+
+  .prob-fill {
+    height: 100%;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    transition: width 0.4s ease, background 0.3s;
+    position: relative;
+  }
+
+  .prob-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    position: absolute;
+    right: 8px;
+  }
+
+  .crown { font-size: 0.9rem; margin-left: 4px; }
+
+  /* Cumulative indicator for top-p */
+  .cumul-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    width: 50px;
+    text-align: right;
+  }
+
+  /* Controls */
+  .controls {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .control-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    width: 80px;
+  }
+
+  .control-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    width: 40px;
+    text-align: right;
+  }
+
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+  }
+
+  /* Roll button + result */
+  .roll-section {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+    margin-bottom: 20px;
+  }
+
+  .roll-btn {
+    flex: 1;
+    padding: 16px;
+    border-radius: 12px;
+    border: 2px solid;
+    background: transparent;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .roll-btn:hover { transform: translateY(-2px); }
+  .roll-btn:active { transform: translateY(0); }
+
+  .result-box {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .result-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .result-token {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    transition: all 0.3s;
+  }
+
+  .result-prob {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* History */
+  .history-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+
+  .history-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 36px;
+  }
+
+  .chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    animation: pop 0.2s ease;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .clear-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.2s;
+  }
+
+  .clear-btn:hover { color: var(--text); border-color: var(--text); }
+
+  /* Spinner animation */
+  @keyframes spin {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+  }
+
+  .spinning { animation: spin 0.3s ease 3; }
+
+  @keyframes pulse {
+    0% { opacity: 0; transform: scale(0.95); }
+    50% { opacity: 1; transform: scale(1.02); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>LLM Token Sampling Strategies</h1>
+  <p class="subtitle">Interactive visualization of how different sampling methods select the next token</p>
+
+  <!-- Mode Tabs -->
+  <div class="tabs">
+    <button class="tab greedy active" onclick="setMode('greedy')">🏆 Greedy</button>
+    <button class="tab topk" onclick="setMode('topk')">🎯 Top-K</button>
+    <button class="tab topp" onclick="setMode('topp')">🌊 Top-P</button>
+  </div>
+
+  <!-- Explanation -->
+  <div class="explain-card" id="explainCard"></div>
+
+  <!-- Probability Bars -->
+  <div class="prob-section">
+    <div class="section-title">Probability Distribution (after softmax)</div>
+    <div class="prob-bars" id="probBars"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls" id="controlsSection"></div>
+
+  <!-- Weighted Lottery -->
+  <div class="prob-section" id="lotterySection">
+    <div class="section-title">Weighted Lottery — candidate pool tickets</div>
+    <div id="lotteryBar" style="width:100%;height:40px;border-radius:10px;overflow:hidden;display:flex;margin-bottom:10px;border:1px solid var(--border)"></div>
+    <div id="lotteryLegend" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted);margin-top:10px" id="lotteryNote"></div>
+  </div>
+
+  <!-- Roll -->
+  <div class="roll-section">
+    <button class="roll-btn" id="rollBtn" onclick="sample()"></button>
+    <div class="result-box">
+      <div class="result-label">Selected Token</div>
+      <div class="result-token" id="resultToken">—</div>
+      <div class="result-prob" id="resultProb"></div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="history-section">
+    <div class="section-title">Sample History</div>
+    <div class="history-chips" id="historyChips"></div>
+    <button class="clear-btn" onclick="clearHistory()">clear history</button>
+  </div>
+</div>
+
+<script>
+  const tokens = [
+    { name: '"cat"',  prob: 0.42 },
+    { name: '"dog"',  prob: 0.31 },
+    { name: '"bird"', prob: 0.16 },
+    { name: '"car"',  prob: 0.07 },
+    { name: '"fish"', prob: 0.04 },
+  ];
+
+  const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444'];
+
+  let mode = 'greedy';
+  let topK = 2;
+  let topP = 0.80;
+  let history = [];
+
+  function setMode(m) {
+    mode = m;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.tab.${m}`).classList.add('active');
+    document.getElementById('resultToken').textContent = '—';
+    document.getElementById('resultProb').textContent = '';
+    render();
+  }
+
+  function getEligible() {
+    if (mode === 'greedy') return [0];
+    if (mode === 'topk') {
+      return tokens.map((_, i) => i).slice(0, topK);
+    }
+    if (mode === 'topp') {
+      let cumul = 0;
+      const eligible = [];
+      for (let i = 0; i < tokens.length; i++) {
+        cumul += tokens[i].prob;
+        eligible.push(i);
+        if (cumul >= topP) break;
+      }
+      return eligible;
+    }
+    return [0];
+  }
+
+  function render() {
+    const eligible = getEligible();
+
+    // Explanation
+    const card = document.getElementById('explainCard');
+    if (mode === 'greedy') {
+      card.style.background = 'rgba(16,185,129,0.08)';
+      card.style.borderColor = 'rgba(16,185,129,0.3)';
+      card.style.color = '#a7f3d0';
+      card.innerHTML = `<strong style="color:#10b981">🏆 Greedy Decoding (Argmax)</strong><br>Deterministically selects the token with the <strong>highest probability</strong> every time. Zero randomness means identical inputs always produce identical outputs. While predictable and coherent, this approach often leads to repetitive text generation.`;
+    } else if (mode === 'topk') {
+      card.style.background = 'rgba(59,130,246,0.08)';
+      card.style.borderColor = 'rgba(59,130,246,0.3)';
+      card.style.color = '#bfdbfe';
+      card.innerHTML = `<strong style="color:#3b82f6">🎯 Top-K Sampling</strong><br>Filters the vocabulary to the <strong>K most probable tokens</strong>, discarding all others, then samples randomly from this reduced set. The value of K directly controls diversity: lower K = more focused, higher K = more creative. Fixed pool size regardless of probability distribution.`;
+    } else {
+      card.style.background = 'rgba(139,92,246,0.08)';
+      card.style.borderColor = 'rgba(139,92,246,0.3)';
+      card.style.color = '#ddd6fe';
+      card.innerHTML = `<strong style="color:#8b5cf6">🌊 Top-P (Nucleus) Sampling</strong><br>Dynamically selects tokens by accumulating probabilities until the <strong>cumulative sum reaches P</strong>. The candidate pool size adapts to the probability distribution: confident predictions = fewer candidates, uncertain predictions = more candidates. More flexible than Top-K.`;
+    }
+
+    // Controls
+    const ctrl = document.getElementById('controlsSection');
+    if (mode === 'greedy') {
+      ctrl.innerHTML = `<div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--muted);text-align:center;padding:8px 0">No parameters — always deterministic ✓</div>`;
+    } else if (mode === 'topk') {
+      ctrl.innerHTML = `
+        <div class="control-row">
+          <span class="control-label">K =</span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+            <input type="range" id="kSlider" min="1" max="5" step="1" value="${topK}"
+              oninput="topK=parseInt(this.value);document.getElementById('kVal').textContent=topK;render()"
+              style="width:100%">
+            <div style="display:flex;justify-content:space-between;padding:0 2px">
+              ${[1,2,3,4,5].map(v => `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:1px;height:6px;background:${v===topK?'#3b82f6':'#1e2a40'}"></div>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:${v===topK?'#3b82f6':'#4b5563'}">${v}</span>
+                </div>`).join('')}
+            </div>
+          </div>
+          <span class="control-val" id="kVal" style="color:#3b82f6">${topK}</span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted)">
+          Candidate pool limited to ${topK} most probable token${topK>1?'s':''}
+        </div>`;
+      document.querySelector('#kSlider')?.addEventListener('input', () => {});
+    } else {
+      const cumul = tokens.reduce((acc, t, i) => {
+        acc.push((acc[i-1] || 0) + t.prob);
+        return acc;
+      }, []);
+      const pTicks = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+      ctrl.innerHTML = `
+        <div class="control-row">
+          <span class="control-label">P =</span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+            <input type="range" id="pSlider" min="0.1" max="1.0" step="0.05" value="${topP}"
+              oninput="topP=parseFloat(this.value);document.getElementById('pVal').textContent=topP.toFixed(2);render()"
+              style="width:100%">
+            <div style="display:flex;justify-content:space-between;padding:0 2px">
+              ${pTicks.map(v => {
+                const active = Math.abs(v - topP) < 0.051;
+                return `
+                <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <div style="width:1px;height:6px;background:${active?'#8b5cf6':'#1e2a40'}"></div>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:${active?'#8b5cf6':'#4b5563'}">${v.toFixed(1)}</span>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+          <span class="control-val" id="pVal" style="color:#8b5cf6">${topP.toFixed(2)}</span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted)">
+          Accumulate tokens until cumulative probability ≥ ${(topP*100).toFixed(0)}%
+        </div>`;
+    }
+
+    // Prob bars
+    const barsEl = document.getElementById('probBars');
+    const cumulative = [];
+    let c = 0;
+    tokens.forEach(t => { c += t.prob; cumulative.push(c); });
+
+    barsEl.innerHTML = tokens.map((t, i) => {
+      const isEligible = eligible.includes(i);
+      const isTop = i === 0;
+      const color = colors[i];
+
+      let rightLabel = '';
+      if (mode === 'topp') {
+        rightLabel = `<span class="cumul-label" style="color:${isEligible?'#8b5cf6':''}">${(cumulative[i]*100).toFixed(0)}%</span>`;
+      } else if (mode === 'greedy' && isTop) {
+        rightLabel = `<span class="cumul-label" style="color:#10b981">✓</span>`;
+      } else {
+        rightLabel = `<span class="cumul-label"></span>`;
+      }
+
+      return `
+        <div class="prob-row ${isEligible ? '' : 'dimmed'}">
+          <span class="prob-token" style="color:${color}">${t.name}</span>
+          <div class="prob-track">
+            <div class="prob-fill" style="width:${t.prob*100}%;background:${isEligible ? color : '#1e2a40'}20;border:2px solid ${isEligible ? color : 'transparent'}">
+              <div style="width:${t.prob*100}%;height:100%;background:${isEligible ? `linear-gradient(90deg,${color}88,${color})` : '#1e2a40'};border-radius:6px;position:absolute;left:0;top:0;transition:all 0.4s"></div>
+              <span class="prob-pct" style="z-index:1">${(t.prob*100).toFixed(0)}%</span>
+            </div>
+          </div>
+          ${rightLabel}
+          ${mode === 'topp' && isEligible && i === eligible[eligible.length-1] ? '<span style="font-size:0.7rem;color:#8b5cf6;margin-left:4px">← cutoff</span>' : ''}
+        </div>`;
+    }).join('');
+
+    // Roll button
+    const btn = document.getElementById('rollBtn');
+    if (mode === 'greedy') {
+      btn.style.borderColor = '#10b981';
+      btn.style.color = '#10b981';
+      btn.innerHTML = '🏆 Select Highest Probability';
+      btn.style.boxShadow = '';
+    } else if (mode === 'topk') {
+      btn.style.borderColor = '#3b82f6';
+      btn.style.color = '#3b82f6';
+      btn.innerHTML = '🎲 Sample from Top-K Pool';
+      btn.style.boxShadow = '0 0 20px rgba(59,130,246,0.2)';
+    } else {
+      btn.style.borderColor = '#8b5cf6';
+      btn.style.color = '#8b5cf6';
+      btn.innerHTML = '🎲 Sample from Nucleus Pool';
+      btn.style.boxShadow = '0 0 20px rgba(139,92,246,0.2)';
+    }
+
+    renderLottery(eligible, null);
+  }
+
+  function renderLottery(eligible, pickedIndex) {
+    const lotteryBar = document.getElementById('lotteryBar');
+    const lotteryLegend = document.getElementById('lotteryLegend');
+    const lotteryNote = document.getElementById('lotteryNote');
+
+    // Total prob of eligible only
+    const total = eligible.reduce((s, i) => s + tokens[i].prob, 0);
+
+    // Build segments
+    lotteryBar.innerHTML = eligible.map(i => {
+      const t = tokens[i];
+      const color = colors[i];
+      const pct = (t.prob / total) * 100;
+      const isPicked = pickedIndex === i;
+      return `<div style="
+        width:${pct}%;
+        height:100%;
+        background:${isPicked ? color : color + '55'};
+        position:relative;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        border-right:2px solid var(--bg);
+        transition:all 0.4s;
+        box-shadow:${isPicked ? `inset 0 0 20px rgba(255,255,255,0.2)` : 'none'};
+      ">
+        ${isPicked ? `<div style="position:absolute;top:-2px;bottom:-2px;left:0;right:0;border:2px solid white;border-radius:4px;animation:pulse 0.5s ease"></div>` : ''}
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;font-weight:700;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.5)">${pct>=10 ? t.name : ''}</span>
+      </div>`;
+    }).join('');
+
+    // Legend
+    lotteryLegend.innerHTML = eligible.map(i => {
+      const t = tokens[i];
+      const color = colors[i];
+      const pct = ((t.prob / total) * 100).toFixed(0);
+      const tickets = Math.round(t.prob * 100);
+      const isPicked = pickedIndex === i;
+      return `<div style="
+        display:flex;align-items:center;gap:6px;
+        padding:4px 10px;border-radius:20px;
+        border:1px solid ${isPicked ? color : color+'40'};
+        background:${isPicked ? color+'22' : 'transparent'};
+        transition:all 0.3s;
+      ">
+        <div style="width:8px;height:8px;border-radius:50%;background:${color}"></div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:${isPicked?color:color+'aa'}">${t.name} — ${tickets} tickets (${pct}%)</span>
+        ${isPicked ? `<span style="color:${color};font-size:0.8rem">🎯</span>` : ''}
+      </div>`;
+    }).join('');
+
+    // Note
+    if (mode === 'greedy') {
+      lotteryNote.textContent = 'Greedy decoding has only 1 candidate → deterministic selection, no sampling distribution needed.';
+    } else {
+      const discarded = tokens.length - eligible.length;
+      lotteryNote.textContent = `${discarded} token${discarded!==1?'s':''} filtered out (0 tickets). Remaining candidates receive tickets proportional to their probabilities — tokens with higher probability get more tickets and thus higher selection chance.`;
+    }
+  }
+
+  function weightedSample(eligible) {
+    const subset = eligible.map(i => ({ i, prob: tokens[i].prob }));
+    const total = subset.reduce((s, x) => s + x.prob, 0);
+    let r = Math.random() * total;
+    for (const s of subset) {
+      r -= s.prob;
+      if (r <= 0) return s.i;
+    }
+    return subset[subset.length - 1].i;
+  }
+
+  function sample() {
+    const eligible = getEligible();
+    let picked;
+
+    if (mode === 'greedy') {
+      picked = 0;
+    } else {
+      picked = weightedSample(eligible);
+    }
+
+    const token = tokens[picked];
+    const color = colors[picked];
+
+    // Update lottery to highlight picked
+    renderLottery(eligible, picked);
+
+    // Animate result
+    const rt = document.getElementById('resultToken');
+    rt.classList.remove('spinning');
+    void rt.offsetWidth;
+    rt.classList.add('spinning');
+    rt.textContent = token.name;
+    rt.style.color = color;
+    document.getElementById('resultProb').textContent = `prob: ${(token.prob*100).toFixed(0)}%`;
+
+    // Add to history
+    history.push({ name: token.name, color });
+    const chips = document.getElementById('historyChips');
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.textContent = token.name;
+    chip.style.borderColor = color + '60';
+    chip.style.color = color;
+    chip.style.background = color + '15';
+    chips.appendChild(chip);
+  }
+
+  function clearHistory() {
+    history = [];
+    document.getElementById('historyChips').innerHTML = '';
+  }
+
+  render();
+</script>
+</body>
+</html>

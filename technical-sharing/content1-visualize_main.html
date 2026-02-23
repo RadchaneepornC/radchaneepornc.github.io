@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Full Pipeline</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Fraunces:wght@300;700;900&display=swap');
+
+  :root {
+    --bg: #050810;
+    --panel: #0a0d18;
+    --panel2: #0f1422;
+    --border: #161e33;
+    --border2: #1e2a45;
+    --text: #c8d4e8;
+    --muted: #364560;
+    --bright: #eef2ff;
+
+    --c-tok:    #f59e0b;
+    --c-emb:    #8b5cf6;
+    --c-pos:    #6366f1;
+    --c-norm:   #64748b;
+    --c-attn:   #3b82f6;
+    --c-res:    #0ea5e9;
+    --c-mlp:    #10b981;
+    --c-proj:   #e85d3a;
+    --c-soft:   #3a9be8;
+    --c-samp:   #3ae87a;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    padding: 0 0 80px;
+    background-image:
+      radial-gradient(ellipse at 15% 10%, rgba(139,92,246,0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 90%, rgba(58,232,122,0.05) 0%, transparent 50%);
+  }
+
+  /* ── HEADER ── */
+  .header {
+    text-align: center;
+    padding: 10px 20px 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+    position: sticky;
+    top: 0;
+    background: rgba(5,8,16,0.95);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: var(--bright);
+    letter-spacing: -0.02em;
+    margin-bottom: 2px;
+  }
+
+  .header p {
+    font-size: 0.58rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .controls-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .run-btn {
+    background: none;
+    border: 1.5px solid var(--border2);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    padding: 5px 18px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: all 0.2s;
+  }
+  .run-btn:hover { border-color: #3ae87a; color: #3ae87a; }
+  .run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .speed-control {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.65rem; color: var(--muted);
+  }
+  .speed-control input[type=range] {
+    width: 80px; -webkit-appearance:none; height:3px;
+    background: var(--border2); border-radius:2px; outline:none;
+  }
+  .speed-control input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:12px; height:12px;
+    border-radius:50%; background:#3ae87a; cursor:pointer;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    display: grid;
+    grid-template-columns: 220px 1fr 300px;
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: calc(100vh - 80px);
+  }
+
+  /* ── LEFT: step list ── */
+  .step-list {
+    padding: 32px 0;
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 80px;
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
+
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 2px solid transparent;
+    opacity: 0.4;
+  }
+
+  .step-item.active {
+    opacity: 1;
+    border-left-color: var(--step-color);
+    background: linear-gradient(90deg, rgba(255,255,255,0.02), transparent);
+  }
+
+  .step-item.done { opacity: 0.7; }
+
+  .step-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--step-color);
+    flex-shrink: 0;
+    transition: box-shadow 0.3s;
+  }
+
+  .step-item.active .step-dot {
+    box-shadow: 0 0 10px var(--step-color);
+  }
+
+  .step-item-name {
+    font-size: 0.68rem;
+    line-height: 1.3;
+    color: var(--text);
+  }
+
+  .step-item.active .step-item-name { color: var(--step-color); }
+
+  /* repeat badge */
+  .repeat-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 20px;
+    margin: 4px 0;
+    font-size: 0.6rem;
+    color: var(--muted);
+    border-left: 2px solid var(--border);
+  }
+
+  /* ── CENTER: visualization ── */
+  .viz-area {
+    padding: 32px 40px;
+    overflow-y: auto;
+    height: calc(100vh - 80px);
+    position: sticky;
+    top: 80px;
+  }
+
+  .step-viz {
+    display: none;
+  }
+
+  .step-viz.visible {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity:0; transform: translateY(8px); }
+    to { opacity:1; transform: translateY(0); }
+  }
+
+  .viz-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    font-weight: 900;
+    margin-bottom: 4px;
+  }
+
+  .viz-subtitle {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .viz-desc {
+    font-size: 0.72rem;
+    color: var(--text);
+    line-height: 1.8;
+    margin-bottom: 24px;
+    padding: 14px 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    border-left: 3px solid var(--step-color, #3ae87a);
+  }
+
+  /* tensor display */
+  .tensor-display {
+    margin-bottom: 20px;
+  }
+
+  .tensor-label {
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+
+  /* token grid */
+  .token-grid {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .tok-chip {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    border: 1px solid;
+    animation: popIn 0.3s ease both;
+    transition: all 0.3s;
+  }
+
+  @keyframes popIn {
+    from { opacity:0; transform:scale(0.8); }
+    to { opacity:1; transform:scale(1); }
+  }
+
+  /* vector grid (embedding) */
+  .vec-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .vec-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .vec-row-label {
+    font-size: 0.62rem;
+    color: var(--muted);
+    width: 60px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .vec-cells {
+    display: flex;
+    gap: 1.5px;
+  }
+
+  .vec-cell {
+    height: 18px;
+    border-radius: 2px;
+    transition: all 0.4s;
+  }
+
+  /* attention heads */
+  .heads-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .head-box {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.6rem;
+    color: var(--muted);
+    transition: all 0.3s;
+    text-align: center;
+    min-width: 70px;
+  }
+
+  .head-box.lit {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: rgba(59,130,246,0.08);
+    box-shadow: 0 0 10px rgba(59,130,246,0.2);
+  }
+
+  .head-box-label { font-weight: 700; font-size: 0.7rem; }
+  .head-box-dim { margin-top: 2px; }
+
+  /* MLP expand-compress */
+  .mlp-diagram {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 16px 0;
+  }
+
+  .mlp-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mlp-bar {
+    border-radius: 4px;
+    transition: all 0.5s cubic-bezier(0.4,0,0.2,1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    color: rgba(255,255,255,0.8);
+    font-weight: 700;
+    writing-mode: horizontal-tb;
+    width: 60px;
+  }
+
+  .mlp-arrow {
+    font-size: 0.8rem;
+    color: var(--muted);
+    padding: 0 8px;
+    margin-bottom: 20px;
+  }
+
+  .mlp-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-align: center;
+    max-width: 70px;
+  }
+
+  /* logit bars */
+  .logit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .logit-row2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logit-tok2 { font-size:0.68rem; color:var(--muted); width:55px; text-align:right; }
+
+  .logit-track2 {
+    height: 20px;
+    background: var(--panel2);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    flex: 1;
+    max-width: 240px;
+  }
+
+  .logit-fill2 {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+
+  .logit-val2 { font-size:0.65rem; width:36px; }
+
+  /* prob bars */
+  .prob-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .prob-row3 { display:flex; align-items:center; gap:8px; }
+  .prob-tok3 { font-size:0.68rem; color:var(--muted); width:55px; text-align:right; }
+
+  .prob-track3 {
+    height: 20px;
+    background: var(--panel2);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    flex: 1;
+    max-width: 240px;
+  }
+
+  .prob-fill3 {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+
+  .prob-val3 { font-size:0.65rem; width:40px; }
+
+  /* lottery */
+  .lottery3 {
+    height: 40px;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    max-width: 420px;
+  }
+
+  .lot3-seg {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.85);
+    border-right: 1.5px solid var(--bg);
+    transition: all 0.5s;
+  }
+
+  .lot3-seg.winner { box-shadow: inset 0 0 20px rgba(255,255,255,0.2); }
+
+  /* ── RIGHT: dimensions panel ── */
+  .dim-panel {
+    padding: 32px 20px;
+    border-left: 1px solid var(--border);
+    position: sticky;
+    top: 80px;
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
+
+  .dim-panel-title {
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 20px;
+  }
+
+  .dim-card {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    border-left: 3px solid var(--card-color, var(--border2));
+    transition: all 0.3s;
+  }
+
+  .dim-card.highlight {
+    border-color: var(--card-color);
+    background: var(--panel2);
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+  }
+
+  .dim-card-title {
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+
+  .dim-card-in {
+    font-size: 0.68rem;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+
+  .dim-card-out {
+    font-size: 0.68rem;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+
+  .dim-shape {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.06);
+    font-size: 0.65rem;
+  }
+
+  /* flow arrows in dim panel */
+  .dim-arrow {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.7rem;
+    margin: 4px 0;
+  }
+
+  /* progress bar */
+  .progress-wrap {
+    margin-bottom: 8px;
+  }
+  .progress-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #8b5cf6, #3ae87a);
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+  .progress-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-top: 4px;
+    text-align: right;
+  }
+
+  /* repeat block */
+  .repeat-block {
+    border: 1px dashed var(--border2);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    position: relative;
+  }
+
+  .repeat-block-label {
+    position: absolute;
+    top: -9px;
+    left: 12px;
+    background: var(--bg);
+    padding: 0 8px;
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  /* result box */
+  .final-result {
+    padding: 20px;
+    background: rgba(58,232,122,0.05);
+    border: 1px solid rgba(58,232,122,0.3);
+    border-radius: 8px;
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  .final-result-token {
+    font-family: 'Fraunces', serif;
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #3ae87a;
+    margin: 8px 0;
+  }
+
+  .final-result-meta {
+    font-size: 0.65rem;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+
+  .final-result-meta span { color: var(--text); }
+
+  /* note tag */
+  .note {
+    font-size: 0.65rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+
+  /* temp slider in softmax */
+  .inline-control {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: fit-content;
+    margin-bottom: 16px;
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+  .inline-control input[type=range] {
+    width: 100px; -webkit-appearance:none; height:3px;
+    background: var(--border2); border-radius:2px; outline:none;
+  }
+  .inline-control input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:13px; height:13px;
+    border-radius:50%; background: #3a9be8; cursor:pointer;
+  }
+  .inline-val { color:#3a9be8; font-weight:700; }
+
+  /* sampling mode tabs */
+  .samp-tabs { display:flex; gap:6px; margin-bottom:14px; }
+  .samp-tab {
+    padding:5px 12px; border-radius:3px; border:1px solid var(--border);
+    background:none; color:var(--muted); font-family:'IBM Plex Mono',monospace;
+    font-size:0.65rem; cursor:pointer; transition:all 0.2s;
+  }
+  .samp-tab.active { background:rgba(58,232,122,0.1); border-color:#3ae87a; color:#3ae87a; }
+
+  .lot3-legend { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  .lot3-chip {
+    font-size:0.62rem; padding:2px 8px; border-radius:3px;
+    border:1px solid var(--border); transition:all 0.3s;
+  }
+
+  /* norm viz */
+  .norm-viz {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    margin: 12px 0;
+  }
+
+  .norm-col { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .norm-col-label { font-size:0.6rem; color:var(--muted); }
+
+  .norm-bars-row { display:flex; gap:2px; align-items:flex-end; }
+  .norm-bar {
+    width:12px;
+    border-radius:2px 2px 0 0;
+    transition: height 0.5s ease, background 0.3s;
+  }
+
+  .norm-arrow-col {
+    display:flex; flex-direction:column; align-items:center;
+    gap:4px; padding-bottom: 20px;
+    font-size:0.7rem; color:var(--muted);
+  }
+
+  /* residual viz */
+  .res-viz {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin: 12px 0;
+    max-width: 400px;
+  }
+
+  .res-vec-mini {
+    display: flex; gap:1.5px; flex-wrap:wrap; width:90px;
+  }
+
+  .res-cell-mini {
+    width:8px; height:8px; border-radius:1px;
+    transition: all 0.4s;
+  }
+
+  .res-op { font-size:1.2rem; color:var(--muted); }
+  .res-label { font-size:0.6rem; color:var(--muted); text-align:center; margin-top:4px; }
+
+  /* MODE TOGGLE */
+  .mode-toggle {
+    display: flex;
+    border: 1.5px solid var(--border2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .mode-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.06em;
+  }
+  .mode-btn.active { background: var(--border2); color: var(--bright); }
+  .mode-btn:hover:not(.active) { color: var(--text); }
+
+  /* NAV BUTTONS */
+  .nav-btn {
+    background: none;
+    border: 1.5px solid var(--border2);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    padding: 7px 18px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.06em;
+  }
+  .nav-btn:hover:not(:disabled) { border-color: #3ae87a; color: #3ae87a; }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .nav-btn.next { border-color: #3ae87a66; color: #3ae87a; }
+  .nav-btn.next:hover { background: rgba(58,232,122,0.08); border-color: #3ae87a; }
+  .nav-btn.reset { border-color: var(--border); color: var(--muted); font-size: 0.65rem; }
+  .nav-btn.reset:hover { color: var(--text); border-color: var(--border2); }
+
+  .step-counter {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>LLM Token Generation — Full Pipeline</h1>
+  <p>vocab_size=50257 &nbsp;·&nbsp; d_model=768 &nbsp;·&nbsp; n_heads=12 &nbsp;·&nbsp; seq_len=10</p>
+  <div class="controls-bar">
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="modeAuto" onclick="setRunMode('auto')">&#9889; Auto</button>
+      <button class="mode-btn" id="modeManual" onclick="setRunMode('manual')">&#128432; Manual</button>
+    </div>
+    <div id="autoControls" style="display:flex;align-items:center;gap:10px">
+      <button class="run-btn" id="runBtn" onclick="runAll()">&#9654; &nbsp;RUN FULL PIPELINE</button>
+      <div class="speed-control">
+        SPEED
+        <input type="range" id="speedSlider" min="1" max="5" step="1" value="3">
+        <span id="speedLabel">3x</span>
+      </div>
+    </div>
+    <div id="manualControls" style="display:none;align-items:center;gap:8px">
+      <button class="nav-btn" id="prevBtn" onclick="manualPrev()" disabled>&#8592; PREV</button>
+      <div class="step-counter" id="stepCounter">STEP 1 / 14</div>
+      <button class="nav-btn next" id="nextBtn" onclick="manualNext()">NEXT &#8594;</button>
+      <button class="nav-btn reset" onclick="manualReset()">&#8634; RESET</button>
+    </div>
+  </div>
+  <div class="progress-wrap" style="margin-top:12px;padding:0 20px">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">ready</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- LEFT STEP LIST -->
+  <div class="step-list" id="stepList"></div>
+
+  <!-- CENTER VIZ -->
+  <div class="viz-area" id="vizArea"></div>
+
+  <!-- RIGHT DIM PANEL -->
+  <div class="dim-panel">
+    <div class="dim-panel-title">Shape at each step</div>
+    <div id="dimCards"></div>
+  </div>
+
+</div>
+
+<script>
+// ── DATA ──
+const SPEED_BASE = 600;
+let speedMult = 3;
+document.getElementById('speedSlider').oninput = function() {
+  speedMult = +this.value;
+  document.getElementById('speedLabel').textContent = speedMult + '×';
+};
+const delay = ms => new Promise(r => setTimeout(r, ms / speedMult));
+
+const SAMPLE_TOKENS = [
+  { text: 'The',    id: 464,  color: '#f59e0b' },
+  { text: 'cat',    id: 3797, color: '#8b5cf6' },
+  { text: 'sat',    id: 3332, color: '#3b82f6' },
+  { text: 'on',     id: 319,  color: '#10b981' },
+  { text: 'the',    id: 262,  color: '#e85d3a' },
+  { text: 'mat',    id: 2603, color: '#6366f1' },
+  { text: '.',      id: 13,   color: '#64748b' },
+  { text: 'It',     id: 632,  color: '#f59e0b' },
+  { text: 'was',    id: 373,  color: '#8b5cf6' },
+  { text: 'very',   id: 845,  color: '#3b82f6' },
+];
+
+const NEXT_TOKENS = [
+  { name: '"soft"', logit: 7.8, prob: 0.0, color: '#e85d3a' },
+  { name: '"warm"', logit: 6.5, prob: 0.0, color: '#3a9be8' },
+  { name: '"old"',  logit: 5.2, prob: 0.0, color: '#f59e0b' },
+  { name: '"big"',  logit: 3.8, prob: 0.0, color: '#10b981' },
+  { name: '"red"',  logit: 2.1, prob: 0.0, color: '#8b5cf6' },
+];
+
+const STEPS = [
+  { id:'tok',    name:'Tokenizer',          color:'var(--c-tok)',  det:true  },
+  { id:'emb',    name:'Embedding Lookup',   color:'var(--c-emb)',  det:true  },
+  { id:'pos',    name:'Positional Encoding',color:'var(--c-pos)',  det:true  },
+  { id:'norm1',  name:'LayerNorm',          color:'var(--c-norm)', det:true  },
+  { id:'attn',   name:'Multi-Head Attention',color:'var(--c-attn)',det:true  },
+  { id:'res1',   name:'Residual Connection',color:'var(--c-res)',  det:true  },
+  { id:'norm2',  name:'LayerNorm',          color:'var(--c-norm)', det:true  },
+  { id:'mlp',    name:'MLP (FFN)',           color:'var(--c-mlp)',  det:true  },
+  { id:'res2',   name:'Residual Connection',color:'var(--c-res)',  det:true  },
+  { id:'repeat', name:'× N Blocks',         color:'var(--c-norm)', det:true  },
+  { id:'fnorm',  name:'Final LayerNorm',    color:'var(--c-norm)', det:true  },
+  { id:'proj',   name:'Linear Projection',  color:'var(--c-proj)', det:true  },
+  { id:'soft',   name:'Softmax',            color:'var(--c-soft)', det:true  },
+  { id:'samp',   name:'Sampling',           color:'var(--c-samp)', det:false },
+];
+
+const DIM_INFO = {
+  tok:   { in:'prompt text',       out:'[10]',        note:'seq_len token IDs' },
+  emb:   { in:'[10]',              out:'[10 × 768]',  note:'each token → 768-dim vector' },
+  pos:   { in:'[10 × 768]',        out:'[10 × 768]',  note:'position added element-wise' },
+  norm1: { in:'[10 × 768]',        out:'[10 × 768]',  note:'normalize across d_model' },
+  attn:  { in:'[10 × 768]',        out:'[10 × 768]',  note:'12 heads × [10×64] → concat' },
+  res1:  { in:'[10×768]+[10×768]', out:'[10 × 768]',  note:'skip connection' },
+  norm2: { in:'[10 × 768]',        out:'[10 × 768]',  note:'normalize before MLP' },
+  mlp:   { in:'[10 × 768]',        out:'[10 × 768]',  note:'expand→3072→compress→768' },
+  res2:  { in:'[10×768]+[10×768]', out:'[10 × 768]',  note:'skip connection' },
+  repeat:{ in:'[10 × 768]',        out:'[10 × 768]',  note:'shape unchanged across N blocks' },
+  fnorm: { in:'[10 × 768]',        out:'[10 × 768]',  note:'final normalization' },
+  proj:  { in:'[10 × 768]',        out:'[10 × 50257]',note:'W[768×50257] → logits' },
+  soft:  { in:'[50257]',           out:'[50257]',      note:'last token only, sums to 1.0' },
+  samp:  { in:'[50257]',           out:'[1]',          note:'single integer token ID' },
+};
+
+let currentStep = -1;
+let samplingMode = 'topk';
+let temperature = 1.0;
+let topK = 2;
+
+// ── BUILD LEFT STEP LIST ──
+function buildStepList() {
+  const el = document.getElementById('stepList');
+  el.innerHTML = '';
+  STEPS.forEach((s, i) => {
+    if (s.id === 'repeat') {
+      el.innerHTML += `<div class="repeat-badge">↺ repeats N times</div>`;
+      return;
+    }
+    el.innerHTML += `
+      <div class="step-item" id="si-${s.id}" style="--step-color:${s.color}" onclick="jumpTo(${i})">
+        <div class="step-dot"></div>
+        <div class="step-item-name">${s.name}<br><span style="font-size:0.55rem;opacity:0.5">${s.det?'deterministic':'🎲 random'}</span></div>
+      </div>`;
+  });
+}
+
+// ── BUILD DIM CARDS ──
+function buildDimCards() {
+  const el = document.getElementById('dimCards');
+  el.innerHTML = STEPS.filter(s=>s.id!=='repeat').map(s => {
+    const d = DIM_INFO[s.id];
+    return `<div class="dim-card" id="dc-${s.id}" style="--card-color:${s.color}">
+      <div class="dim-card-title">${s.name}</div>
+      <div class="dim-card-in" style="color:var(--muted)">in: <span class="dim-shape">${d.in}</span></div>
+      <div class="dim-card-out" style="color:${s.color}">out: <span class="dim-shape" style="background:${s.color}22;color:${s.color}">${d.out}</span></div>
+      <div style="font-size:0.58rem;color:var(--muted);margin-top:4px">${d.note}</div>
+    </div>`;
+  }).join('<div class="dim-arrow">↓</div>');
+}
+
+// ── BUILD VIZ PANELS ──
+function buildVizPanels() {
+  const el = document.getElementById('vizArea');
+  el.innerHTML = `
+    ${makeViz('tok', 'Tokenizer', 'STEP 01 · DETERMINISTIC', 'var(--c-tok)',
+      `Splits the raw text prompt into subword tokens using BPE (Byte Pair Encoding). Each token is mapped to an integer ID from the vocabulary of 50,257 tokens.`,
+      buildTokViz())}
+
+    ${makeViz('emb', 'Embedding Lookup', 'STEP 02 · DETERMINISTIC', 'var(--c-emb)',
+      `Each integer token ID is looked up in a learned embedding matrix of shape [50,257 × 768]. This converts each token into a dense 768-dimensional vector — turning discrete IDs into continuous representations the model can compute with.`,
+      buildEmbViz())}
+
+    ${makeViz('pos', 'Positional Encoding', 'STEP 03 · DETERMINISTIC', 'var(--c-pos)',
+      `Since attention has no notion of order, positional encodings are added element-wise to the embedding vectors. Each position gets a unique pattern so the model knows token 1 from token 10.`,
+      buildPosViz())}
+
+    ${makeViz('norm1', 'LayerNorm', 'STEP 04 · DETERMINISTIC', 'var(--c-norm)',
+      `Normalizes each token's 768-dimensional vector independently across the d_model dimension — making mean ≈ 0, variance ≈ 1. This stabilizes training and helps gradients flow. Shape is unchanged.`,
+      buildNormViz('before', 'after'))}
+
+    ${makeViz('attn', 'Multi-Head Attention', 'STEP 05 · DETERMINISTIC', 'var(--c-attn)',
+      `The 768 dimensions are split across 12 heads (64 dims each). Each head independently computes Q·Kᵀ attention scores, then weighs V values — letting each token "look at" all others. Outputs are concatenated back to [10 × 768].`,
+      buildAttnViz())}
+
+    ${makeViz('res1', 'Residual Connection', 'STEP 06 · DETERMINISTIC', 'var(--c-res)',
+      `The input to the attention block is added back to its output (skip connection). This preserves information from earlier layers and prevents vanishing gradients. Shape stays [10 × 768].`,
+      buildResViz())}
+
+    ${makeViz('norm2', 'LayerNorm', 'STEP 07 · DETERMINISTIC', 'var(--c-norm)',
+      `Another normalization before the MLP block. Applied to each token's vector independently across the 768 dimensions. Shape unchanged.`,
+      buildNormViz('before MLP', 'after norm'))}
+
+    ${makeViz('mlp', 'MLP (Feed-Forward Network)', 'STEP 08 · DETERMINISTIC', 'var(--c-mlp)',
+      `Two linear layers with GELU activation. First expands each token from 768 → 3072 (4×), creating room to mix features. GELU adds non-linearity. Second compresses 3072 → 768 back. This is where most factual knowledge is stored.`,
+      buildMlpViz())}
+
+    ${makeViz('res2', 'Residual Connection', 'STEP 09 · DETERMINISTIC', 'var(--c-res)',
+      `Pre-MLP input is added back to MLP output. Another skip connection to preserve information. Shape remains [10 × 768].`,
+      buildResViz())}
+
+    ${makeViz('repeat', '× N Transformer Blocks', 'STEPS 04–09 REPEAT N TIMES', 'var(--c-norm)',
+      `The full block (LayerNorm → Attention → Residual → LayerNorm → MLP → Residual) repeats N times. GPT-2 Small: 12 blocks. GPT-3: 96 blocks. Shape stays [10 × 768] throughout all layers.`,
+      buildRepeatViz())}
+
+    ${makeViz('fnorm', 'Final LayerNorm', 'STEP 10 · DETERMINISTIC', 'var(--c-norm)',
+      `One last normalization after all transformer blocks, applied to the final hidden states before projection to vocabulary size. Shape [10 × 768] unchanged.`,
+      buildNormViz('after blocks', 'normalized'))}
+
+    ${makeViz('proj', 'Linear Projection (Unembedding)', 'STEP 11 · DETERMINISTIC', 'var(--c-proj)',
+      `The last token's hidden state [768] is multiplied by the unembedding matrix W[768 × 50,257] to produce raw logit scores for every token in the vocabulary. Only the last position matters — it predicts what comes next.`,
+      buildProjViz())}
+
+    ${makeViz('soft', 'Softmax', 'STEP 12 · DETERMINISTIC', 'var(--c-soft)',
+      `Converts raw logits → probability distribution over all 50,257 tokens. Temperature T scales logits before softmax: low T → sharp/confident, high T → flat/random. Still fully deterministic — same input always gives same output.`,
+      buildSoftViz())}
+
+    ${makeViz('samp', 'Sampling', 'STEP 13 · 🎲 ONLY RANDOM STEP', 'var(--c-samp)',
+      `The only non-deterministic step. Greedy always picks argmax. Top-K / Top-P filter candidates then do a weighted random draw — higher probability = more tickets. This weighted lottery is why same prompt gives different responses.`,
+      buildSampViz())}
+  `;
+}
+
+function makeViz(id, title, subtitle, color, desc, content) {
+  return `<div class="step-viz" id="sv-${id}" style="--step-color:${color}">
+    <div class="viz-title" style="color:${color}">${title}</div>
+    <div class="viz-subtitle">${subtitle}</div>
+    <div class="viz-desc">${desc}</div>
+    ${content}
+  </div>`;
+}
+
+// ── VIZ BUILDERS ──
+function buildTokViz() {
+  const chips = SAMPLE_TOKENS.map((t,i) => `
+    <div class="tok-chip" id="tc-${i}" style="border-color:${t.color}55;color:${t.color};background:${t.color}11;animation-delay:${i*0.06}s">
+      ${t.text}<br><span style="font-size:0.55rem;opacity:0.5">id:${t.id}</span>
+    </div>`).join('');
+  return `
+    <div class="tensor-display">
+      <div class="tensor-label">Input text → tokens [seq_len=10]</div>
+      <div class="token-grid" id="tokGrid">${chips}</div>
+    </div>
+    <div class="note">BPE splits text into subword units. "playing" might become ["play","ing"]. Each unit maps to one integer ID.</div>`;
+}
+
+function buildEmbViz() {
+  const rows = SAMPLE_TOKENS.slice(0,5).map((t,i) => {
+    const cells = Array.from({length:32}, (_,j) => {
+      const v = Math.random();
+      const op = Math.round(v*80+10);
+      return `<div class="vec-cell" style="width:10px;background:${t.color};opacity:${op/100}"></div>`;
+    }).join('');
+    return `<div class="vec-row">
+      <span class="vec-row-label">"${t.text}"</span>
+      <div class="vec-cells" id="ev-${i}">${cells}</div>
+      <span style="font-size:0.6rem;color:var(--muted);margin-left:6px">···[768]</span>
+    </div>`;
+  }).join('');
+  return `
+    <div class="tensor-display">
+      <div class="tensor-label">Embedding matrix [50257 × 768] → output [10 × 768]</div>
+      <div class="vec-grid" id="embGrid">${rows}</div>
+      <div class="note" style="margin-top:8px">First 5 of 10 tokens shown. Each row = one 768-dim vector. Colors represent different values across dimensions.</div>
+    </div>`;
+}
+
+function buildPosViz() {
+  const rows = SAMPLE_TOKENS.slice(0,5).map((t,i) => {
+    const embCells = Array.from({length:16}, (_,j) => {
+      const v = Math.random(); const op = Math.round(v*70+15);
+      return `<div class="vec-cell" style="width:9px;background:${t.color};opacity:${op/100}"></div>`;
+    }).join('');
+    const posCells = Array.from({length:16}, (_,j) => {
+      const v = Math.sin(i/10*Math.PI + j*0.5)*0.5+0.5;
+      const op = Math.round(v*60+20);
+      return `<div class="vec-cell" style="width:9px;background:#6366f1;opacity:${op/100}"></div>`;
+    }).join('');
+    const outCells = Array.from({length:16}, (_,j) => {
+      const op = Math.round(Math.random()*70+20);
+      return `<div class="vec-cell" style="width:9px;background:#a78bfa;opacity:${op/100}"></div>`;
+    }).join('');
+    return `<div class="vec-row" style="margin-bottom:4px">
+      <span class="vec-row-label" style="width:70px;font-size:0.58rem">pos ${i}</span>
+      <div class="vec-cells">${embCells}</div>
+      <span style="color:var(--muted);margin:0 6px;font-size:0.8rem">+</span>
+      <div class="vec-cells">${posCells}</div>
+      <span style="color:var(--muted);margin:0 6px;font-size:0.8rem">=</span>
+      <div class="vec-cells">${outCells}</div>
+    </div>`;
+  }).join('');
+  return `
+    <div class="tensor-display">
+      <div class="tensor-label" style="margin-bottom:6px">
+        <span style="color:var(--c-emb)">■ embedding</span>
+        &nbsp;+&nbsp;
+        <span style="color:#6366f1">■ positional</span>
+        &nbsp;=&nbsp;
+        <span style="color:#a78bfa">■ position-aware</span>
+      </div>
+      <div class="vec-grid">${rows}</div>
+    </div>
+    <div class="note">Same shape [10×768] throughout. Now each vector encodes both what the token is and where it sits in the sequence.</div>`;
+}
+
+function buildNormViz(b, a) {
+  const before = [18,52,8,74,31,63,45,12,88,27,55,40];
+  const after  = [40,48,35,58,42,55,46,37,62,39,52,44];
+  const bBars = before.map((v,i)=>`<div class="norm-bar" style="height:${v}px;background:#3b82f6;opacity:0.7"></div>`).join('');
+  const aBars = after.map((v,i)=>`<div class="norm-bar" style="height:${v}px;background:#64748b"></div>`).join('');
+  return `
+    <div class="norm-viz">
+      <div class="norm-col">
+        <div class="norm-bars-row">${bBars}</div>
+        <div class="norm-col-label">${b}</div>
+      </div>
+      <div class="norm-arrow-col"><div>→</div><div style="font-size:0.55rem">LayerNorm</div></div>
+      <div class="norm-col">
+        <div class="norm-bars-row">${aBars}</div>
+        <div class="norm-col-label">${a}</div>
+      </div>
+    </div>
+    <div class="note">Each bar = one dimension of the 768-dim vector. After LayerNorm: mean≈0, variance≈1 — values become more uniform, stabilizing learning.</div>`;
+}
+
+function buildAttnViz() {
+  const heads = Array.from({length:12},(_,i)=>`
+    <div class="head-box" id="hb-${i}">
+      <div class="head-box-label">Head ${i+1}</div>
+      <div class="head-box-dim">Q,K,V<br>[10×64]</div>
+    </div>`).join('');
+  return `
+    <div class="tensor-display">
+      <div class="tensor-label">d_model=768 split across 12 heads → each head gets d_head=64</div>
+      <div class="heads-grid" id="headsGrid">${heads}</div>
+    </div>
+    <div style="font-size:0.68rem;color:var(--muted);margin-bottom:8px">Each head: [10×768]·W_Q → Q[10×64] &nbsp;|&nbsp; ·W_K → K[10×64] &nbsp;|&nbsp; ·W_V → V[10×64]</div>
+    <div style="font-size:0.68rem;color:var(--muted);margin-bottom:8px">Attention: softmax(Q·Kᵀ / √64) · V → [10×64] per head</div>
+    <div style="font-size:0.68rem;color:#3b82f6">Concat all 12 heads → [10×768] ✓</div>
+    <div class="note" style="margin-top:8px">Each head specializes in different relationships — syntax, coreference, semantics, etc. All run in parallel, then outputs are concatenated.</div>`;
+}
+
+function buildResViz() {
+  const cells = (color, opacity=0.6) => Array.from({length:20},()=>{
+    const op = (Math.random()*0.5+0.3).toFixed(2);
+    return `<div class="res-cell-mini" style="background:${color};opacity:${op}"></div>`;
+  }).join('');
+  return `
+    <div class="res-viz">
+      <div>
+        <div class="res-vec-mini">${cells('#3b82f6')}</div>
+        <div class="res-label">input x<br>[10×768]</div>
+      </div>
+      <div class="res-op">+</div>
+      <div>
+        <div class="res-vec-mini">${cells('#10b981')}</div>
+        <div class="res-label">sublayer(x)<br>[10×768]</div>
+      </div>
+      <div class="res-op">=</div>
+      <div>
+        <div class="res-vec-mini">${cells('#0ea5e9')}</div>
+        <div class="res-label">output<br>[10×768]</div>
+      </div>
+    </div>
+    <div class="note">Skip connections let gradients flow directly through the network during training, preventing vanishing gradients in deep networks.</div>`;
+}
+
+function buildMlpViz() {
+  return `
+    <div class="tensor-display">
+      <div class="tensor-label">Per-token transformation (applied to all 10 tokens independently)</div>
+      <div class="mlp-diagram" id="mlpDiag">
+        <div class="mlp-block">
+          <div class="mlp-bar" id="mlp-in" style="height:80px;background:linear-gradient(180deg,#10b98133,#10b981);border:1px solid #10b98166">768</div>
+          <div class="mlp-label">input [768]</div>
+        </div>
+        <div class="mlp-arrow">→<br><span style="font-size:0.55rem">Linear<br>W[768→3072]</span></div>
+        <div class="mlp-block">
+          <div class="mlp-bar" id="mlp-expand" style="height:200px;background:linear-gradient(180deg,#f59e0b33,#f59e0b);border:1px solid #f59e0b66">3072</div>
+          <div class="mlp-label">expanded<br>[3072]</div>
+        </div>
+        <div class="mlp-arrow">→<br><span style="font-size:0.55rem">GELU</span></div>
+        <div class="mlp-block">
+          <div class="mlp-bar" id="mlp-gelu" style="height:200px;background:linear-gradient(180deg,#e85d3a33,#e85d3a);border:1px solid #e85d3a66">3072</div>
+          <div class="mlp-label">activated<br>[3072]</div>
+        </div>
+        <div class="mlp-arrow">→<br><span style="font-size:0.55rem">Linear<br>W[3072→768]</span></div>
+        <div class="mlp-block">
+          <div class="mlp-bar" id="mlp-out" style="height:80px;background:linear-gradient(180deg,#10b98133,#10b981);border:1px solid #10b98166">768</div>
+          <div class="mlp-label">output [768]</div>
+        </div>
+      </div>
+    </div>
+    <div class="note">The expand-compress pattern gives the model a large "working space" to mix features. MLP layers act like key-value memory — much factual knowledge is stored here.</div>`;
+}
+
+function buildRepeatViz() {
+  return `
+    <div class="repeat-block">
+      <div class="repeat-block-label">ONE TRANSFORMER BLOCK (repeats N times)</div>
+      ${['LayerNorm','Multi-Head Attention','Residual Connection','LayerNorm','MLP (FFN)','Residual Connection'].map((n,i)=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--c-norm);flex-shrink:0"></div>
+          <span style="font-size:0.7rem;color:var(--text)">${n}</span>
+          <span style="font-size:0.6rem;color:var(--muted);margin-left:auto">[10×768] → [10×768]</span>
+        </div>`).join('')}
+    </div>
+    <div style="text-align:center;margin:16px 0">
+      <div style="font-size:0.7rem;color:var(--muted)">GPT-2 Small: N=12 &nbsp;|&nbsp; GPT-2 XL: N=48 &nbsp;|&nbsp; GPT-3: N=96</div>
+      <div style="font-size:0.7rem;color:var(--muted);margin-top:4px">Shape [10×768] never changes — only values get richer</div>
+    </div>`;
+}
+
+function buildProjViz() {
+  const bars = NEXT_TOKENS.map((t,i)=>`
+    <div class="logit-row2">
+      <span class="logit-tok2">${t.name}</span>
+      <div class="logit-track2">
+        <div class="logit-fill2" id="lf2-${i}" style="background:linear-gradient(90deg,${t.color}66,${t.color})"></div>
+      </div>
+      <span class="logit-val2" style="color:${t.color}">${t.logit.toFixed(1)}</span>
+    </div>`).join('');
+  return `
+    <div class="tensor-display">
+      <div class="tensor-label">Last token hidden state [768] × W[768×50257] → logits [50257]</div>
+      <div style="font-size:0.65rem;color:var(--muted);margin-bottom:12px">Showing top 5 of 50,257 logit scores:</div>
+      <div class="logit-list" id="projBars">${bars}</div>
+    </div>
+    <div class="note">Only the <strong>last token position</strong> matters for prediction. Its hidden state encodes context from all previous tokens via attention. Logits = raw unnormalized scores, not probabilities yet.</div>`;
+}
+
+function buildSoftViz() {
+  const bars = NEXT_TOKENS.map((t,i)=>`
+    <div class="prob-row3">
+      <span class="prob-tok3">${t.name}</span>
+      <div class="prob-track3">
+        <div class="prob-fill3" id="pf3-${i}" style="background:linear-gradient(90deg,${t.color}66,${t.color})"></div>
+      </div>
+      <span class="prob-val3" id="pv3-${i}" style="color:${t.color}">0%</span>
+    </div>`).join('');
+  return `
+    <div class="inline-control">
+      TEMPERATURE
+      <input type="range" id="tempSlider" min="0.1" max="3.0" step="0.1" value="1.0"
+        oninput="temperature=+this.value;document.getElementById('tempV').textContent=temperature.toFixed(1);updateSoftmax()">
+      <span class="inline-val" id="tempV">1.0</span>
+    </div>
+    <div class="tensor-display">
+      <div class="tensor-label">logits ÷ temperature → softmax → probabilities [50257]</div>
+      <div class="prob-list" id="softBars">${bars}</div>
+    </div>
+    <div class="note">Drag temperature to reshape the distribution. Low T → "cat" dominates. High T → all tokens more equal. Still deterministic — same T always gives same probs.</div>`;
+}
+
+function buildSampViz() {
+  return `
+    <div class="samp-tabs">
+      <button class="samp-tab" onclick="setSampMode('greedy',this)">Greedy</button>
+      <button class="samp-tab active" onclick="setSampMode('topk',this)">Top-K</button>
+      <button class="samp-tab" onclick="setSampMode('topp',this)">Top-P</button>
+    </div>
+    <div id="kCtrl" style="display:flex;align-items:center;gap:10px;font-size:0.65rem;color:var(--muted);margin-bottom:12px">
+      K = <input type="range" id="kSlider" min="1" max="5" step="1" value="2"
+        oninput="topK=+this.value;document.getElementById('kV').textContent=topK;renderLot(null)"
+        style="-webkit-appearance:none;width:80px;height:3px;background:var(--border2);border-radius:2px;outline:none">
+      <span id="kV" style="color:#3ae87a;font-weight:700">2</span>
+      <style>#kSlider::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#3ae87a;cursor:pointer}</style>
+    </div>
+    <div class="lottery3" id="lot3"></div>
+    <div class="lot3-legend" id="lot3legend"></div>
+    <div class="note" id="lot3note"></div>
+    <div class="final-result" id="finalResult" style="display:none">
+      <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">next token selected</div>
+      <div class="final-result-token" id="finalTok">—</div>
+      <div class="final-result-meta" id="finalMeta"></div>
+    </div>`;
+}
+
+// ── SOFTMAX COMPUTE ──
+function softmax(logits, temp) {
+  const s = logits.map(l=>l/temp);
+  const mx = Math.max(...s);
+  const exps = s.map(x=>Math.exp(x-mx));
+  const sum = exps.reduce((a,b)=>a+b,0);
+  return exps.map(x=>x/sum);
+}
+
+function updateSoftmax() {
+  const probs = softmax(NEXT_TOKENS.map(t=>t.logit), temperature);
+  NEXT_TOKENS.forEach((t,i) => { t.prob = probs[i]; });
+  const max = Math.max(...NEXT_TOKENS.map(t=>t.logit));
+  NEXT_TOKENS.forEach((t,i) => {
+    const pf = document.getElementById(`pf3-${i}`);
+    const pv = document.getElementById(`pv3-${i}`);
+    if (pf) pf.style.width = (t.prob*100)+'%';
+    if (pv) pv.textContent = (t.prob*100).toFixed(1)+'%';
+  });
+  renderLot(null);
+}
+
+function setSampMode(m, btn) {
+  samplingMode = m;
+  document.querySelectorAll('.samp-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const kc = document.getElementById('kCtrl');
+  if (kc) kc.style.display = m==='topk'?'flex':'none';
+  renderLot(null);
+}
+
+function getEligible() {
+  if (samplingMode==='greedy') return [0];
+  if (samplingMode==='topk') return NEXT_TOKENS.map((_,i)=>i).slice(0,topK);
+  let c=0; const e=[];
+  for (let i=0;i<NEXT_TOKENS.length;i++){c+=NEXT_TOKENS[i].prob;e.push(i);if(c>=0.8)break;}
+  return e;
+}
+
+function renderLot(pickedIdx) {
+  const el = document.getElementById('lot3');
+  const leg = document.getElementById('lot3legend');
+  const note = document.getElementById('lot3note');
+  if (!el) return;
+  const eligible = getEligible();
+  const total = eligible.reduce((s,i)=>s+NEXT_TOKENS[i].prob,0);
+
+  el.innerHTML = NEXT_TOKENS.map((t,i)=>{
+    const isEl=eligible.includes(i);
+    const isW=pickedIdx===i;
+    const flex = isEl?(t.prob/total*100):8;
+    return `<div class="lot3-seg${isW?' winner':''}" style="flex:${flex};background:${t.color}${isEl?(isW?'':'99'):'22'}">
+      ${flex>10?t.name:''}
+    </div>`;
+  }).join('');
+
+  leg.innerHTML = NEXT_TOKENS.map((t,i)=>{
+    const isEl=eligible.includes(i);
+    const isW=pickedIdx===i;
+    const tickets=isEl?Math.round(t.prob/total*100):0;
+    return `<div class="lot3-chip" style="border-color:${isEl?(isW?t.color:t.color+'55'):'transparent'};color:${isEl?t.color:t.color+'44'};background:${isW?t.color+'22':'transparent'}">
+      ${t.name} ${tickets}t ${isW?'← picked':''}
+    </div>`;
+  }).join('');
+
+  if (note) {
+    const excl=NEXT_TOKENS.length-eligible.length;
+    note.innerHTML = samplingMode==='greedy'
+      ? '<strong style="color:#3ae87a">No lottery</strong> — greedy always picks argmax. Zero randomness.'
+      : `${excl} token${excl!==1?'s':''} excluded. Remaining share tickets by probability. <strong style="color:#3ae87a">Weighted draw = only randomness in the pipeline.</strong>`;
+  }
+}
+
+// ── ANIMATION HELPERS ──
+function setActive(stepId) {
+  const idx = STEPS.findIndex(s=>s.id===stepId);
+  currentStep = idx;
+
+  // step list
+  STEPS.forEach((s,i)=>{
+    const si = document.getElementById(`si-${s.id}`);
+    if (!si) return;
+    si.classList.remove('active','done');
+    if (i===idx) si.classList.add('active');
+    else if (i<idx) si.classList.add('done');
+  });
+
+  // dim cards highlight
+  document.querySelectorAll('.dim-card').forEach(c=>c.classList.remove('highlight'));
+  const dc = document.getElementById(`dc-${stepId}`);
+  if (dc) { dc.classList.add('highlight'); dc.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+
+  // viz panels
+  document.querySelectorAll('.step-viz').forEach(v=>v.classList.remove('visible'));
+  const sv = document.getElementById(`sv-${stepId}`);
+  if (sv) {
+    sv.classList.add('visible');
+    document.getElementById('vizArea').scrollTop = 0;
+  }
+
+  // progress
+  const pct = ((idx+1)/STEPS.length*100).toFixed(0);
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('progressLabel').textContent = `${idx+1}/${STEPS.length} — ${STEPS[idx].name}`;
+}
+
+function jumpTo(idx) {
+  const s = STEPS[idx];
+  if (s) setActive(s.id);
+}
+
+// ── ANIMATE SPECIFIC STEPS ──
+async function animateTok() {
+  // Already rendered, just highlight chips
+}
+
+async function animateEmb() {
+  for (let i=0;i<5;i++) {
+    const ev = document.getElementById(`ev-${i}`);
+    if (!ev) continue;
+    ev.querySelectorAll('.vec-cell').forEach((c,j)=>{
+      setTimeout(()=>{c.style.opacity=(Math.random()*0.7+0.2).toFixed(2);},j*8);
+    });
+    await delay(60);
+  }
+}
+
+async function animateAttn() {
+  for (let i=0;i<12;i++) {
+    const hb = document.getElementById(`hb-${i}`);
+    if (hb) hb.classList.add('lit');
+    await delay(80);
+  }
+  await delay(200);
+  for (let i=0;i<12;i++) {
+    const hb = document.getElementById(`hb-${i}`);
+    if (hb) hb.classList.remove('lit');
+  }
+}
+
+async function animateProj() {
+  const max = Math.max(...NEXT_TOKENS.map(t=>t.logit));
+  for (let i=0;i<NEXT_TOKENS.length;i++) {
+    const lf = document.getElementById(`lf2-${i}`);
+    if (lf) lf.style.width = (NEXT_TOKENS[i].logit/max*100)+'%';
+    await delay(100);
+  }
+}
+
+async function animateSoft() {
+  updateSoftmax();
+  // trigger bar animation
+  const probs = softmax(NEXT_TOKENS.map(t=>t.logit),temperature);
+  for (let i=0;i<NEXT_TOKENS.length;i++) {
+    const pf = document.getElementById(`pf3-${i}`);
+    if (pf) { pf.style.width='0%'; }
+  }
+  await delay(50);
+  probs.forEach((p,i)=>{
+    const pf = document.getElementById(`pf3-${i}`);
+    const pv = document.getElementById(`pv3-${i}`);
+    if (pf) pf.style.width=(p*100)+'%';
+    if (pv) pv.textContent=(p*100).toFixed(1)+'%';
+    NEXT_TOKENS[i].prob = p;
+  });
+  renderLot(null);
+}
+
+async function animateSamp() {
+  const eligible = getEligible();
+  let picked;
+  if (samplingMode==='greedy') {
+    picked=0;
+  } else {
+    const total=eligible.reduce((s,i)=>s+NEXT_TOKENS[i].prob,0);
+    let r=Math.random()*total;
+    for (const i of eligible){r-=NEXT_TOKENS[i].prob;if(r<=0){picked=i;break;}}
+    if (picked===undefined) picked=eligible[eligible.length-1];
+  }
+  renderLot(picked);
+  await delay(300);
+
+  const tok = NEXT_TOKENS[picked];
+  const fr = document.getElementById('finalResult');
+  const ft = document.getElementById('finalTok');
+  const fm = document.getElementById('finalMeta');
+  if (fr) {
+    fr.style.display='block';
+    ft.textContent=tok.name;
+    ft.style.color=tok.color;
+    fm.innerHTML=`prob: <span>${(tok.prob*100).toFixed(1)}%</span><br>logit: <span>${tok.logit}</span><br>mode: <span>${samplingMode}</span>`;
+  }
+}
+
+// ── MAIN RUN ──
+async function runAll() {
+  const btn = document.getElementById('runBtn');
+  btn.disabled=true;
+  btn.textContent='⏳ Running...';
+
+  // hide final result
+  const fr = document.getElementById('finalResult');
+  if (fr) fr.style.display='none';
+
+  for (const [id, anim] of SEQUENCE) {
+    setActive(id);
+    await delay(SPEED_BASE);
+    if (anim) await anim();
+    await delay(SPEED_BASE * 0.6);
+  }
+
+  btn.disabled=false;
+  btn.textContent='▶ RUN AGAIN';
+}
+
+
+// SEQUENCE definition (shared by auto and manual)
+const SEQUENCE = [
+  ['tok',    null],
+  ['emb',    animateEmb],
+  ['pos',    null],
+  ['norm1',  null],
+  ['attn',   animateAttn],
+  ['res1',   null],
+  ['norm2',  null],
+  ['mlp',    null],
+  ['res2',   null],
+  ['repeat', null],
+  ['fnorm',  null],
+  ['proj',   animateProj],
+  ['soft',   animateSoft],
+  ['samp',   animateSamp],
+];
+
+// RUN MODE
+let runMode = 'auto';
+let manualIdx = 0;
+
+function setRunMode(mode) {
+  runMode = mode;
+  document.getElementById('modeAuto').classList.toggle('active', mode==='auto');
+  document.getElementById('modeManual').classList.toggle('active', mode==='manual');
+  document.getElementById('autoControls').style.display = mode==='auto' ? 'flex' : 'none';
+  document.getElementById('manualControls').style.display = mode==='manual' ? 'flex' : 'none';
+  if (mode === 'manual') manualReset();
+}
+
+function updateManualUI() {
+  const total = SEQUENCE.length;
+  document.getElementById('stepCounter').textContent = 'STEP ' + (manualIdx+1) + ' / ' + total;
+  document.getElementById('prevBtn').disabled = manualIdx === 0;
+  document.getElementById('nextBtn').disabled = manualIdx === total - 1;
+  const pct = ((manualIdx+1)/total*100).toFixed(0);
+  document.getElementById('progressFill').style.width = pct+'%';
+}
+
+async function manualNext() {
+  if (manualIdx >= SEQUENCE.length - 1) return;
+  manualIdx++;
+  await runStep(manualIdx);
+  updateManualUI();
+}
+
+async function manualPrev() {
+  if (manualIdx <= 0) return;
+  manualIdx--;
+  await runStep(manualIdx);
+  updateManualUI();
+}
+
+function manualReset() {
+  manualIdx = 0;
+  const fr = document.getElementById('finalResult');
+  if (fr) fr.style.display = 'none';
+  runStep(0);
+  updateManualUI();
+}
+
+async function runStep(idx) {
+  const [id, anim] = SEQUENCE[idx];
+  setActive(id);
+  if (anim) await anim();
+}
+
+// ── INIT ──
+buildStepList();
+buildDimCards();
+buildVizPanels();
+setActive('tok');
+updateSoftmax();
+renderLot(null);
+</script>
+</body>
+</html>

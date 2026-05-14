@@ -134,6 +134,52 @@ span.highlight {
   background-color: #ffffd0;
 }
 
+/* Experience Section Styles */
+.experience-entry {
+  background-color: #f9f9f9;
+  border-left: 4px solid #1772d0;
+  padding: 16px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.experience-entry:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.experience-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.experience-duration {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 12px 0;
+  font-style: italic;
+}
+
+.experience-description {
+  margin: 0;
+  padding: 0;
+  list-style-position: inside;
+}
+
+.experience-description li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+  color: #555;
+  font-size: 14px;
+}
+
+.experience-description li:last-child {
+  margin-bottom: 0;
+}
+
 /* Mobile Responsive Styles */
 @media screen and (max-width: 768px) {
   /* Adjust body and table padding for mobile */

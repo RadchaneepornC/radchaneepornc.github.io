@@ -134,6 +134,26 @@ span.highlight {
   background-color: #ffffd0;
 }
 
+/* Project Skill Tags */
+.skill-tags {
+  margin: 10px 0 0 0;
+  padding: 0;
+  list-style: none;
+  line-height: 2;
+}
+
+.skill-tag {
+  display: inline-block;
+  background-color: #eaf2fb;
+  color: #1772d0;
+  font-family: 'Lato', Verdana, Helvetica, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin: 3px 4px 3px 0;
+}
+
 /* Experience Section Styles */
 .experience-entry {
   background-color: #f9f9f9;
